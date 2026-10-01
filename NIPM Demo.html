@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NBTEL NOC · NIPM² Power SCADA (DEMO)</title>
+<style>
+:root{--bg:#eef0f3;--pn:#fff;--ink:#1e232a;--mut:#6b7480;--ln:#dfe3e8;--ok:#16a34a;--warn:#d99a00;--crit:#dc2626;--info:#2563eb;--off:#6b7280;--acc:#f26a10;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12151a;--pn:#1b1f26;--ink:#e8eaed;--mut:#98a0ab;--ln:#2d333d}}
+:root[data-theme="dark"]{--bg:#12151a;--pn:#1b1f26;--ink:#e8eaed;--mut:#98a0ab;--ln:#2d333d}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:13px/1.35 "Segoe UI",Tahoma,Arial,sans-serif;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;overflow:hidden}
+header{background:#1f2329;color:#fff;display:flex;align-items:center;gap:12px;padding:8px 14px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:8px;cursor:pointer}.logo i{font:italic 900 20px Arial;background:linear-gradient(90deg,#e8710a,#ff5a00);padding:1px 9px 1px 6px;border-radius:3px 9px 3px 9px;transform:skewX(-8deg)}
+.logo b{font-size:15px;line-height:1.1}.logo small{display:block;color:#aab;font-size:10px;font-weight:400}
+.demo{background:#d99a00;color:#111;font-weight:700;padding:3px 10px;border-radius:12px;font-size:11px}
+header input{background:#2c323a;border:1px solid #3c444e;color:#fff;border-radius:6px;padding:6px 10px;width:220px}
+.sp{flex:1}button{font:inherit;cursor:pointer;border:1px solid var(--ln);background:var(--pn);color:var(--ink);border-radius:6px;padding:5px 10px}
+button:hover{border-color:var(--acc)}button.p{background:var(--acc);color:#fff;border-color:var(--acc)}button.d{color:var(--crit)}
+header button{background:#2c323a;color:#fff;border-color:#3c444e}
+#sr{position:absolute;top:46px;left:230px;background:var(--pn);color:var(--ink);border:1px solid var(--ln);border-radius:8px;max-height:60vh;overflow:auto;width:360px;z-index:30;display:none;box-shadow:0 8px 24px #0004}
+#sr div{padding:6px 10px;cursor:pointer;border-bottom:1px solid var(--ln)}#sr div:hover{background:var(--bg)}#sr small{color:var(--mut)}
+#fire{background:var(--crit);color:#fff;padding:7px 14px;font-weight:700;cursor:pointer;display:none;animation:bl 1s infinite}
+@keyframes bl{50%{background:#8f1414}}
+#mid{display:grid;grid-template-columns:minmax(0,1fr) 250px;min-height:0}
+#main{overflow:auto;padding:12px 14px;scroll-behavior:smooth}
+#sites{background:var(--pn);border-left:1px solid var(--ln);overflow:auto;padding:10px}
+#sites h2,.sec h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;color:var(--mut)}
+.chips{display:flex;gap:4px;margin-bottom:8px}.chips button{padding:2px 8px;font-size:11px}.chips .on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.si{display:grid;grid-template-columns:14px 1fr auto;gap:2px 8px;align-items:center;padding:8px;border:1px solid var(--ln);border-radius:8px;margin-bottom:6px;cursor:pointer;background:var(--bg)}
+.si:hover{border-color:var(--acc)}.si.sel{border-color:var(--acc);box-shadow:inset 3px 0 0 var(--acc);background:var(--pn)}
+.si i{width:11px;height:11px;border-radius:50%}.si em{font-style:normal;color:var(--mut);font-size:11px}.si small{grid-column:2/4;color:var(--mut)}
+.st{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.st h1{margin:0;font-size:26px}
+.bd{display:inline-block;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700;color:#fff;background:var(--off)}
+.ov{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+.ov div{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:7px 10px}.ov span{display:block;font-size:10px;color:var(--mut);text-transform:uppercase}.ov b{font-size:15px}
+.flow{background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fcol{display:flex;flex-direction:column;gap:4px}.fn{border:2px solid var(--ln);border-radius:8px;padding:6px 10px;background:var(--bg);cursor:pointer;text-align:center;position:relative}.fn small{display:block;color:var(--mut)}
+.fn.src{--c:#888;text-align:left;cursor:default}.fn.act{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--pn))}.fn u{position:absolute;right:4px;top:0;color:var(--crit);cursor:pointer;text-decoration:none}
+.ar{color:var(--acc);font-weight:700;text-align:center;font-size:11px}.flow.live .ar{animation:fl 1.2s infinite}@keyframes fl{50%{opacity:.25}}
+.sec{margin-bottom:14px}.row{display:flex;flex-wrap:wrap;gap:12px;padding:12px;border-radius:10px;border:1px solid var(--ln);background:repeating-linear-gradient(60deg,transparent 0 22px,#8883 22px 23px),var(--pn)}
+.eq{width:330px;background:var(--pn);border:1px solid var(--ln);border-top:4px solid var(--ok);border-radius:10px;padding:8px;cursor:pointer;box-shadow:0 3px 8px #0002;transition:.15s}
+.eq:hover{transform:translateY(-2px)}.eq.l1{border-top-color:var(--warn)}.eq.l2{border-top-color:var(--crit);box-shadow:0 0 0 2px #dc262655}.eq.off{border-top-color:var(--off);opacity:.85}.eq.stale{filter:grayscale(1);opacity:.6}
+.eq.focus{outline:3px solid var(--crit);animation:pu 1s 6}@keyframes pu{50%{box-shadow:0 0 22px var(--crit)}}
+.eq.dr{outline:2px dashed var(--acc);cursor:grab}.eh{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.eb{display:flex;gap:6px;align-items:center}.eb svg{width:135px;flex:none}.rd{flex:1;font-size:12px}.rd div{display:flex;justify-content:space-between;gap:6px;border-bottom:1px dotted var(--ln)}.rd span{color:var(--mut)}
+.fbar{margin-top:6px;background:var(--crit);color:#fff;text-align:center;font-weight:700;border-radius:6px;padding:4px;animation:bl 1s infinite}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}.tile{background:var(--pn);border:1px solid var(--ln);border-top:4px solid var(--ok);border-radius:10px;padding:10px;cursor:pointer}.tile:hover{border-color:var(--acc)}
+#dash{background:var(--bg);border-top:3px solid var(--acc);height:38vh;min-height:230px;overflow:auto;padding:8px 12px}#dash.big{height:74vh}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:6px;margin-bottom:8px}.kp div{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:5px 9px}.kp span{font-size:10px;color:var(--mut)}.kp b{display:block;font-size:18px}
+.dg{display:grid;grid-template-columns:minmax(270px,34%) minmax(0,1fr);gap:8px}.pnl{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:8px;overflow:auto;max-height:100%}
+.al{display:flex;gap:8px;padding:6px;border-left:4px solid var(--info);background:var(--bg);border-radius:6px;margin-bottom:5px;cursor:pointer}.al:hover{outline:1px solid var(--acc)}.al.l1{border-color:var(--warn)}.al.l2{border-color:var(--crit)}.al small{color:var(--mut);display:block}
+table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;color:var(--mut);font-size:10px;text-transform:uppercase;padding:3px 6px}td{padding:4px 6px;border-top:1px solid var(--ln)}tr.k{cursor:pointer}tr.k:hover{background:var(--bg)}
+.tabs{display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap}.tabs .on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.br{display:grid;grid-template-columns:90px 1fr 60px;gap:6px;align-items:center;margin:3px 0;cursor:pointer}.br>div{background:var(--bg);height:10px;border-radius:5px}.br i{display:block;height:100%;border-radius:5px}.br b{text-align:right}
+.ch{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+#md{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:50;padding:12px}#md.on{display:flex}
+#mb{background:var(--pn);border-radius:12px;max-width:760px;width:100%;max-height:92vh;overflow:auto;padding:16px}
+#mb h2{margin:0 0 8px}.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0}.fg label{font-size:11px;color:var(--mut)}.fg input,.fg select,#mb input,#mb select{width:100%;padding:5px;border:1px solid var(--ln);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+.ab{background:color-mix(in srgb,var(--crit) 12%,var(--pn));border:1px solid var(--crit);border-radius:8px;padding:8px;margin:6px 0}
+#ts{position:fixed;top:60px;right:262px;z-index:60;display:flex;flex-direction:column;gap:6px;max-width:320px}.ts{background:var(--pn);border:1px solid var(--ln);border-left:5px solid var(--warn);padding:8px 10px;border-radius:8px;box-shadow:0 6px 18px #0005;cursor:pointer}.ts.l2{border-left-color:var(--crit)}
+@media(max-width:900px){#mid{grid-template-columns:1fr 170px}.dg{grid-template-columns:1fr}.eq{width:100%}}
+</style>
+<style>.grp{display:flex;gap:6px;margin-bottom:8px}.grp button{flex:1;padding:7px 4px;font-weight:700}.grp button small{opacity:.7}.grp .on{background:var(--acc);color:#fff;border-color:var(--acc)}.cm{cursor:pointer;margin-inline-start:4px;font-size:14px}body.ro [onclick*="editSite"],body.ro [onclick*="saveSite"],body.ro [onclick*="camCfg"]{display:none!important}</style>
+<style>.kc{cursor:pointer}.kc:hover{outline:1px solid var(--acc)}.nk div.kc:hover{transform:translateY(-2px);border-color:var(--c)}</style>
+</head>
+<body>
+<header>
+ <div class="logo" onclick="home()"><i>NB</i><b>NBTEL Power Monitoring<small>NIPM² · Centralized Power Monitoring &amp; Site Visualization</small></b></div>
+ <span class="demo">🟡 DEMO MODE — SIMULATED DATA</span>
+ <input id="q" placeholder="Search site / equipment / alarm…" oninput="srch(this.value)" autocomplete="off">
+ <span class="sp"></span>
+ <button onclick="scnM()">▶ DEMO SCENARIO</button><button onclick="addSiteM()">＋ Site</button><button onclick="archM()">Architecture</button><button onclick="if(confirm('Restore initial demo data?')){localStorage.removeItem(LSK);boot(true)}">Reset</button>
+ <button id="bell" onclick="alarmCenter('all')">🔔</button><span id="clk"></span>
+</header>
+<div id="sr"></div>
+<div id="fire" onclick="fireGo()"></div>
+<div id="mid"><div id="main"></div><aside id="sites"></aside></div>
+<div id="dash"></div>
+<div id="md" onclick="if(event.target==this)closeM()"><div id="mb"></div></div>
+<div id="ts"></div>
+<script>
+const $=s=>document.querySelector(s),LSK='nipm2_v3',R=(a,b)=>a+Math.random()*(b-a),rid=()=>Math.random().toString(36).slice(2,8);
+const f=(v,d=0)=>(+v).toFixed(d),cl=(v,a,b)=>Math.max(a,Math.min(b,v)),now=()=>new Date().toLocaleTimeString('en-GB'),avg=a=>a.length?a.reduce((x,y)=>x+ +y,0)/a.length:0;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TY={ac:'AC / Cooling',rack:'Telecom Racks',inv:'Inverters',rect:'Rectifiers',gen:'Site Generator',ats:'ATS / Main Power Source',solar:'Solar System',smoke:'Smoke Sensor'};
+const NM={ac:'AC Unit',rack:'Rack',inv:'Inverter',rect:'Rectifier',gen:'Generator',ats:'ATS',solar:'Solar System',smoke:'Smoke Sensor'};
+const SRC=['National Grid','Commercial Generator','Site Generator','Solar','Battery','Other'];
+const SC={'National Grid':'#16a34a','Commercial Generator':'#d99a00','Site Generator':'#ea580c','Solar':'#eab308','Battery':'#2563eb','Other':'#6b7280'};
+const SI={'National Grid':'🟢','Commercial Generator':'🟡','Site Generator':'🟠','Solar':'☀','Battery':'🔋','Other':'⚪'};
+const PD={
+ac:[['temp','Room Temp','°C','n',1],['set','Set Temp','°C','n',0],['cur','Current','A','n',1],['pow','Power','kW','n',1],['comp','Compressor','','s'],['fan','Fan','','s'],['on','Running','','b'],['fault','Alarm/Fault','','b']],
+rack:[['vin','Input Voltage','V','n',1],['cur','Input Current','A','n',1],['load','Load (DC / AC)','kW','n',2],['fault','Fault','','b']],
+inv:[['src','Source','','src'],['vin','Input','V','n',0],['vout','Output','V','n',0],['load','Load','kW','n',1],['loadPct','Load','%','n',0],['cur','Out Current','A','n',1],['temp','Temperature','°C','n',0],['freq','Frequency','Hz','n',1],['pow','Power','kW','n',1],['soc','Battery SOC','%','n',0],['bv','Battery Voltage','V','n',1],['bcur','Battery Current (+chg/−dis)','A','n',1],['btemp','Battery Temp','°C','n',0],['bh','Battery Health','%','n',0],['fault','Fault','','b']],
+rect:[['acin','AC Input','V','n',0],['dc','DC Output','V','n',1],['cur','Output Current','A','n',0],['chg','Battery Current (+chg/−dis)','A','n',0],['soc','Battery SOC','%','n',0],['bv','Battery Voltage','V','n',1],['btemp','Battery Temp','°C','n',0],['bh','Battery Health','%','n',0],['load','Load','%','n',0],['temp','Temperature','°C','n',0],['mods','Modules OK','','n',0],['tot','Modules Total','','n',0],['fail','Failure','','b']],
+gen:[['fuel','Fuel','%','n',1],['oil','Oil','%','n',0],['temp','Engine Temp','°C','n',0],['cool','Coolant','°C','n',0],['v','Voltage','V','n',0],['f','Frequency','Hz','n',1],['cur','Current','A','n',0],['load','Load','kW','n',0],['rpm','RPM','','n',0],['runtime','Runtime','h','n',1],['run','Running','','b'],['fault','Fault','','b']],
+ats:[['src','Current Source','','src'],['load','Total Load','kW','n',1],['v','Voltage','V','n',0],['cur','Current','A','n',0],['f','Frequency','Hz','n',1],['pf','Power Factor','','n',2],['fault','Fault','','b']],
+smoke:[['ppm','Smoke','ppm','n',0],['temp','Temperature','°C','n',0],['fire','Fire Detected','','b']],
+solar:[['pvv','PV Voltage','V','n',0],['pvc','PV Current','A','n',1],['pvp','PV Power','kW','n',1],['gen','Generation Today','kWh','n',1],['temp','Temperature','°C','n',0],['fault','Fault','','b']]};
+const DEF={
+ac:()=>({on:1,temp:+R(23.5,26).toFixed(1),set:22,cur:+R(7.5,8.8).toFixed(1),pow:1.8,comp:'ON',fan:'HIGH',fault:0}),
+rack:()=>({vin:54,cur:94,load:5.1,fault:0}),
+inv:()=>({src:'National Grid',vin:230,vout:230,load:+R(6,9).toFixed(1),loadPct:64,cur:36.5,temp:42,freq:50,pow:8.4,soc:+R(80,92).toFixed(0),bv:+R(51.5,53).toFixed(1),bcur:+R(4,10).toFixed(1),btemp:+R(27,31).toFixed(0),bh:+R(88,96).toFixed(0),fault:0}),
+rect:()=>({acin:380,dc:54.2,cur:126,chg:32,soc:+R(84,93).toFixed(0),bv:+R(52.8,53.4).toFixed(1),btemp:+R(27,30).toFixed(0),bh:+R(90,97).toFixed(0),load:68,temp:39,mods:5,tot:6,fail:0}),
+gen:()=>({fuel:+R(55,85).toFixed(1),oil:84,temp:78,cool:74,v:400,f:50,cur:60,load:42,rpm:1500,runtime:126.4,run:0,fault:0}),
+ats:()=>({src:'National Grid',load:72.4,v:400,cur:121,f:50,pf:.92,fault:0}),
+smoke:()=>({ppm:0,temp:26,fire:0}),
+solar:()=>({pvv:410,pvc:12.4,pvp:5.1,gen:31.2,temp:46,fault:0})};
+const DR={ac:{temp:.3,cur:.3,pow:.08},rack:{},inv:{vin:1,vout:.6,load:.3,loadPct:1,cur:.5,temp:.4,freq:.02,pow:.3,soc:.15,bv:.08,btemp:.3,bcur:.6},rect:{acin:1.5,dc:.08,cur:2,chg:1,load:1,temp:.4,soc:.15,bv:.08,btemp:.3},gen:{temp:.4,cool:.3,v:1,f:.03,cur:1.5,load:.8,rpm:3},ats:{load:.8,v:1,cur:1.5,f:.03,pf:.005},smoke:{temp:.2},solar:{pvv:2,pvc:.2,pvp:.1,temp:.4}};
+function mkE(t,n,o){const p=Object.assign(DEF[t](),o||{});if(t=='gen'&&!p.run)Object.assign(p,{load:0,cur:0,rpm:0,v:0,f:0});return{id:rid(),t,name:NM[t]+' '+String(n).padStart(2,'0'),p,b:{...p}}}
+function site(name,code,c,srcs,type){const eq=[];for(const t of ['ac','inv','rect','rack','gen','solar','ats','smoke']){let v=c[t]===undefined?(t=='ats'||t=='smoke'?1:t=='rack'?(Array.isArray(c.rect)?c.rect.length:(c.rect||0)):0):c[t];(Array.isArray(v)?v:Array(v).fill({})).forEach((o,i)=>eq.push(mkE(t,i+1,o)))}
+ const a=eq.find(e=>e.t=='ats');const o=c.inv;eq.filter(e=>e.t=='inv').forEach((e,i)=>{if(!(Array.isArray(o)&&o[i]&&o[i].src)){e.p.src=e.b.src=a.p.src}});
+ return{id:rid(),name,code,type:type||'FTTH',comm:1,last:Date.now(),srcs,eq,cams:[{id:rid(),name:'CAM-01 Entrance',url:''},{id:rid(),name:'CAM-02 Power Room',url:''}]}}
+const G='National Grid',SG='Site Generator',CG='Commercial Generator';
+function seed(){const q=o=>Object.assign({ac:1,rect:1,inv:1,gen:1},o||{}),P=['Solar'];const L=[
+['MOHANDSEEN','MH','FTTH',{ac:3,inv:1,rect:2,rack:3,gen:[{run:1,fuel:17.4,load:38,cur:55},{fuel:64}],ats:[{src:SG,load:58,cur:98}]},[G,SG]],
+['WAHDA','WH','FTTH',{ac:2,inv:2,rect:2,rack:3,gen:1,ats:[{load:66}]},[G,SG]],
+['HADBAA','HB','FTTH',{ac:2,inv:1,rect:2,rack:3,gen:1,solar:1,ats:[{load:61}]},[G,SG,'Solar']],
+['EKHAA','EK','FTTH',{ac:2,inv:1,rect:1,gen:1,ats:[{load:31}]},[G,CG]],
+['DOMEZ','DM','FTTH',{ac:1,inv:1,rect:1,solar:1,ats:[{src:'Solar',load:22.5,cur:38}]},['Solar','Battery',G]],
+['ZUHOOR','ZH','FTTH',{ac:2,rect:[{soc:26,chg:-14},{}],inv:2,gen:1,ats:[{load:49}]},[G,SG]],
+['QAYARA','QY','FTTH',{rack:4,ac:[{temp:24},{temp:25}],rect:[{soc:87},{soc:91,btemp:37}],inv:[{},{src:SG}],gen:[{run:1,fuel:72}],ats:[{src:G,load:72.4,cur:121}]},[G,SG]],
+['BASHIQA','BA','FTTH',{ac:2,inv:1,rect:1,gen:1,solar:1,ats:[{load:38}]},[G,SG,'Solar']],
+['TALAFER','TL','FTTH',{ac:2,inv:2,rack:4,rect:[{},{fail:1,mods:0,dc:0,cur:0,chg:0,load:0,acin:0}],gen:1,ats:[{src:CG,load:63}]},[G,CG]],
+['HAMDANIA','HM','FTTH',{ac:2,inv:1,rect:1,gen:1,ats:[{load:27}]},[G,SG]],
+['TALKIF','TK','FTTH',{ac:1,inv:1,rect:1,gen:1,solar:1,ats:[{load:19}]},[G,SG,'Solar']],
+['RASHIDYA','RS','FTTH',{ac:2,inv:1,rect:2,gen:1},[G,SG]],
+['NAINAWA','NN','FTTH',{ac:2,inv:1,rect:1,gen:1},[G,SG]]];
+const W=[['ZERAAI','ZR'],['JOSEQ','JQ'],['METHAQ','MT'],['JDEDA','JD'],['WAHDA','WH'],['AADN','AD'],['DARKZLIA','DK'],['JAMIAA','JM'],['SOMOD','SM'],['RIFAAI','RF'],['TALKIF','TK'],['HAMDANIA','HM'],['DOMEZ','DM'],['ZUHOOR','ZH'],['TAMOOZ','TZ'],['HADBAA','HB'],['TALAFER','TL'],['SAMRAA','SR']];
+W.forEach((x,i)=>L.push([x[0],'W-'+x[1],'WIFI',q(i%4==1?{solar:1,ac:2}:i%5==2?{rect:2}:{}),i%4==1?[G,SG,'Solar']:[G,SG]]));
+return L.map((x,i)=>{const c=x[3];if(!c.ats)c.ats=[{load:15+(i*7)%45}];return site(x[0],x[1],c,x[4],x[2])})}
+let S,AL=[],prev=null,seen={},edit=false,dragging=false,focusEq=null,tab='gen',flt='all';
+function save(){try{localStorage.setItem(LSK,JSON.stringify(S))}catch(e){}}
+function boot(reset){let d=null;if(!reset){try{d=JSON.parse(localStorage.getItem(LSK))}catch(e){}}S=d&&d.ver==1?d:{ver:1,sites:seed(),sel:null};prev=null;seen={};closeM();render()}
+const cur=()=>S.sites.find(s=>s.id==S.sel);
+/* alarms */
+function alarmsOf(e){const p=e.p,o=[],A=(lvl,title,param,val,thr,unit)=>o.push({lvl,title,param,val,thr,unit});
+ if(e.t=='rect'||e.t=='inv'){if(p.soc<15)A(2,'Battery Critical','Battery SOC',p.soc,15,'%');else if(p.soc<30)A(1,'Battery Low SOC','Battery SOC',p.soc,30,'%');if(p.btemp>45)A(2,'Battery Over-Temperature','Battery Temp',p.btemp,45,'°C');else if(p.btemp>35)A(1,'Battery High Temperature','Battery Temp',p.btemp,35,'°C');if(p.bv<46)A(2,'Battery Low Voltage','Battery Voltage',p.bv,46,'V')}
+ if(e.t=='rack'&&p.fault)A(2,'Rack Fault','Fault',1,0,'');
+ if(e.t=='ac'){if(p.fault)A(2,'AC Failure','Fault',1,0,'');else if(p.on&&p.temp>=38)A(2,'AC Temperature Critical','Room Temp',p.temp,38,'°C');else if(p.temp>=32)A(1,'AC Temperature','Room Temp',p.temp,32,'°C')}
+ if(e.t=='gen'){if(p.fault)A(2,'Generator Failure','Fault',1,0,'');if(p.fuel<10)A(2,'Critical Fuel','Fuel',p.fuel,10,'%');else if(p.fuel<20)A(1,'Generator Low Fuel','Fuel',p.fuel,20,'%');if(p.temp>95)A(2,'Generator Over-Temperature','Engine Temp',p.temp,95,'°C');if(p.run&&!p.fault)A(0,'Generator Running','Status','RUN','','')}
+ if(e.t=='rect'){if(p.fail)A(2,'Rectifier Failure','Failure',1,0,'');else if(p.mods<p.tot)A(1,'Rectifier Module Fault','Modules OK',p.mods,p.tot,'');if(p.temp>55)A(1,'Rectifier High Temperature','Temperature',p.temp,55,'°C')}
+ if(e.t=='inv'){if(p.fault)A(2,'Inverter Failure','Fault',1,0,'');if(p.temp>65)A(1,'Inverter High Temperature','Temperature',p.temp,65,'°C');if(p.loadPct>90)A(1,'Inverter Overload','Load',p.loadPct,90,'%')}
+ if(e.t=='smoke'){if(p.fire)A(2,'FIRE / SMOKE ALARM','Smoke',p.ppm,'FIRE','ppm');else if(p.ppm>=50)A(1,'Smoke Detected','Smoke',p.ppm,50,'ppm');if(p.temp>60&&!p.fire)A(2,'Room Over-Temperature','Temperature',p.temp,60,'°C')}
+ if(e.t=='solar'&&p.fault)A(2,'Solar Fault','Fault',1,0,'');
+ if(e.t=='ats'){if(p.fault)A(2,'ATS Failure','Fault',1,0,'');if(p.src=='Battery')A(0,'Running on Battery','Source','Battery','','')}
+ return o}
+function computeAlarms(){const L=[];S.sites.forEach(s=>{if(!s.comm){L.push(mk(s,null,{lvl:2,title:'Communication Lost',param:'Last data',val:ago(s),thr:'',unit:''}));return}
+ s.eq.forEach(e=>alarmsOf(e).forEach(a=>L.push(mk(s,e,a))))});return L.sort((a,b)=>b.lvl-a.lvl)}
+function mk(s,e,a){const key=s.id+(e?e.id:'')+a.title;a.key=key;a.sid=s.id;a.sn=s.name+' ['+(s.type=='WIFI'?'WIFI':'FTTH')+']';a.eid=e?e.id:null;a.en=e?e.name:'Site Gateway';a.t=seen[key]||(seen[key]=now());return a}
+const ago=s=>Math.max(1,Math.round((Date.now()-s.last)/60000))+' min ago';
+const eqLvl=e=>Math.max(0,...AL.filter(a=>a.eid==e.id&&a.lvl>=1).map(a=>a.lvl));
+const lvlOf=s=>s.comm?Math.max(0,...AL.filter(a=>a.sid==s.id&&a.eid&&a.lvl>=1).map(a=>a.lvl)):'off';
+const col=l=>({0:'var(--ok)',1:'var(--warn)',2:'var(--crit)',off:'var(--off)'})[l],NMS={0:'NORMAL',1:'WARNING',2:'CRITICAL',off:'OFFLINE'};
+const badge=l=>`<span class="bd" style="background:${col(l)}">${NMS[l]}</span>`;
+function health(s){if(!s.comm)return 0;const a=AL.filter(x=>x.sid==s.id&&x.eid&&x.lvl>=1);return cl(100-28*a.filter(x=>x.lvl==2).length-9*a.filter(x=>x.lvl==1).length-2*s.eq.filter(e=>e.t=='ac'&&!e.p.on&&!e.p.fault).length,5,100)}
+const atsOf=s=>s.eq.find(e=>e.t=='ats'),load=s=>{const a=atsOf(s);return a?+a.p.load:s.eq.filter(e=>e.t=='inv').reduce((t,e)=>t+ +e.p.load,0)},srcOf=s=>{const a=atsOf(s);return a?a.p.src:(s.srcs[0]||'-')};
+/* simulation */
+function drift(e){const p=e.p,b=e.b,d=DR[e.t]||{};for(const k in d)p[k]=Math.max(0,p[k]+(b[k]-p[k])*.15+R(-.5,.5)*d[k]);
+ if((e.t=='rect'||e.t=='inv'))p.soc=cl(p.soc,0,100);if(e.t=='ac'&&!p.on){p.cur=0;p.pow=0}
+ if(e.t=='gen'){if(p.run){p.fuel=Math.max(0,p.fuel-.02);p.runtime+=3/3600}else{p.load=p.cur=p.rpm=p.v=p.f=0}}
+ if(e.t=='smoke'&&p.fire){p.ppm=Math.max(p.ppm,300)}}
+setInterval(()=>{S.sites.forEach(s=>{if(s.comm){s.eq.forEach(drift);s.last=Date.now()}});save();render()},3000);
+setInterval(()=>{$('#clk').textContent=new Date().toLocaleString('en-GB')},1000);
+/* icons */
+function bx(X,Y,w,d,h,c){const a=w*.87,b=w*.5,cc=d*.87,ee=d*.5;return`<polygon points="${X},${Y} ${X-a},${Y-b} ${X-a},${Y-b-h} ${X},${Y-h}" fill="${c[0]}"/><polygon points="${X},${Y} ${X+cc},${Y-ee} ${X+cc},${Y-ee-h} ${X},${Y-h}" fill="${c[1]}"/><polygon points="${X},${Y-h} ${X-a},${Y-b-h} ${X-a+cc},${Y-b-ee-h} ${X+cc},${Y-ee-h}" fill="${c[2]}"/>`}
+function fr(X,Y,w,h,u0,v0,u1,v1,fl){const a=w*.87,b=w*.5,P=(u,v)=>(X-u*a).toFixed(1)+','+(Y-u*b-v*h).toFixed(1);return`<polygon points="${P(u0,v0)} ${P(u1,v0)} ${P(u1,v1)} ${P(u0,v1)}" fill="${fl}"/>`}
+function icon(e,l,off){const p=e.p,C=l==2?['#e58a8a','#c45a5a','#f4b0b0']:l==1?['#e9cf86','#c8a94f','#f4e3ad']:off?['#b6bcc4','#9aa2ac','#cfd4da']:['#8f9aa8','#6f7a88','#b9c2cd'],led=col(l),dk='#2b3440';let s='';
+ if(e.t=='ac'){const X=85,Y=84;s=bx(X,Y,80,22,28,C);for(let i=0;i<4;i++)s+=fr(X,Y,80,28,.08,.12+i*.14,.75,.17+i*.14,p.on?'#5aa9d6':'#69737f');s+=fr(X,Y,80,28,.84,.72,.92,.86,p.on?led:'#555')}
+ if((e.t=='rect'||e.t=='inv')){const X=70,Y=92,q=cl(p.soc,0,100)/100,bc=p.soc<15?'#dc2626':p.soc<30?'#d99a00':'#22c55e';s=bx(X,Y,44,40,50,C);for(let i=0;i<4;i++){s+=fr(X,Y,44,50,.08,.08+i*.22,.92,.24+i*.22,dk)+fr(X,Y,44,50,.1,.1+i*.22,.1+.8*q,.22+i*.22,bc)}}
+ if(e.t=='inv'){const X=68,Y=88;s=bx(X,Y,50,34,44,C)+fr(X,Y,50,44,.12,.55,.88,.9,'#0f2a3a')+fr(X,Y,50,44,.18,.7,.65,.76,'#4ade80');for(let i=0;i<3;i++)s+=fr(X,Y,50,44,.12,.1+i*.12,.88,.15+i*.12,dk);s+=fr(X,Y,50,44,.8,.44,.9,.5,led)}
+ if(e.t=='rect'){const X=68,Y=90,n=Math.max(1,p.tot);s=bx(X,Y,48,34,46,C);for(let i=0;i<n;i++)s+=fr(X,Y,48,46,.06+i*(.88/n),.1,.06+(i+.8)*(.88/n),.85,i<p.mods?'#3b82f6':'#dc2626')}
+ if(e.t=='gen'){const X=78,Y=88;s=bx(X,Y,70,36,34,C)+'<rect x="60" y="12" width="7" height="18" fill="#555"/>'+(p.run?'<circle cx="64" cy="8" r="5" fill="#9993"><animate attributeName="cy" values="10;-2" dur="1.4s" repeatCount="indefinite"/></circle>':'')+fr(X,Y,70,34,0,0,1,.12,'#f26a10')+fr(X,Y,70,34,.08,.3,.5,.85,'#0f2a3a')+fr(X,Y,70,34,.58,.3,.58+.34*cl(p.fuel,0,100)/100,.5,p.fuel<20?'#dc2626':'#22c55e')+fr(X,Y,70,34,.85,.7,.93,.85,p.run?led:'#555')}
+ if(e.t=='ats'){const X=64,Y=90,c=SC[p.src]||'#888';s=bx(X,Y,42,26,52,C)+fr(X,Y,42,52,.1,.75,.9,.93,dk)+fr(X,Y,42,52,.14,.79,.86,.89,c)+fr(X,Y,42,52,.15,.15,.42,.6,'#2b3440')+fr(X,Y,42,52,.58,.15,.85,.6,c)}
+ if(e.t=='smoke'){const f=p.fire,lc=f?'#dc2626':p.ppm>=50?'#d99a00':'#22c55e';s=`<ellipse cx="70" cy="68" rx="38" ry="15" fill="${C[1]}"/><rect x="32" y="52" width="76" height="16" fill="${C[0]}"/><ellipse cx="70" cy="52" rx="38" ry="15" fill="${C[2]}"/><circle cx="70" cy="52" r="8" fill="${lc}">${f?'<animate attributeName="r" values="7;22;7" dur=".8s" repeatCount="indefinite"/>':''}</circle>`+(f?'<text x="70" y="30" text-anchor="middle" font-size="18">🔥</text>':'')}
+ if(e.t=='solar'){for(let j=0;j<2;j++)for(let i=0;i<3;i++){const x=14+i*34+j*14,y=76-j*26;s+=`<polygon points="${x},${y} ${x+31},${y} ${x+43},${y-22} ${x+12},${y-22}" fill="${l?C[0]:'#1e3a8a'}" stroke="#93c5fd"/>`}s+='<circle cx="118" cy="16" r="9" fill="#facc15"/>'}
+ return`<svg viewBox="0 0 140 100"><ellipse cx="70" cy="90" rx="58" ry="7" fill="#0002"/>${s}</svg>`}
+/* render helpers */
+function stx(e){const l=eqLvl(e),p=e.p;if(l==2)return'CRITICAL';if(l==1)return'WARNING';if(e.t=='ac'&&!p.on)return'OFF';if(e.t=='gen')return p.run?'RUN':'STANDBY';if(e.t=='ats')return'ONLINE';return'NORMAL'}
+function lines(e){const p=e.p;let h=PD[e.t].filter(d=>d[3]!='b'&&d[0]!='tot').map(d=>{let v=d[3]=='n'?f(p[d[0]],d[4]):p[d[0]],u=d[2]?' '+d[2]:'';if(d[0]=='mods'){v=p.mods+' / '+p.tot;u=''}return`<div><span>${d[1]}</span><b>${v}${u}</b></div>`}).join('');
+ if((e.t=='rect'||e.t=='inv'))h+=`<div><span>Mode</span><b>${p.cur>=0?'⬆ Charging':'⬇ Discharging'}</b></div>`;return h}
+function card(s,e){const l=eqLvl(e),t=stx(e),off=t=='OFF'||t=='STANDBY',ac=AL.filter(a=>a.eid==e.id&&a.lvl>=1);
+ return`<div class="eq l${l} ${off?'off':''} ${s.comm?'':'stale'} ${focusEq==e.id?'focus':''} ${edit?'dr':''}" data-eq="${e.id}" data-t="${e.t}" draggable="${edit}" onclick="openEq('${e.id}')">
+<div class="eh"><b>${esc(e.name)}</b><span class="bd" style="background:${l?col(l):off?'var(--off)':'var(--ok)'}">${t}</span></div>
+<div class="eb">${icon(e,l,off)}<div class="rd">${lines(e)}</div></div>${e.t=='smoke'&&e.p.fire?'<div class="fbar">🔥 FIRE / SMOKE ALARM</div>':ac.length?`<div style="font-size:11px;margin-top:4px;color:${col(l)}">⚠ ${ac.map(a=>esc(a.title)).join(' · ')}</div>`:''}</div>`}
+function flow(s){const a=atsOf(s),act=a?a.p.src:'',g=t=>s.eq.filter(e=>e.t==t),sol=g('solar')[0],chg=g('rect').reduce((t,e)=>t+ +e.p.chg,0),soc=avg(g('bat').map(e=>e.p.soc));
+ const N=(t,h)=>`<div class="fn" onclick="sec('${t}')">${h}</div>`,AR=x=>`<div class="ar">▶${x?'<br>'+x:''}</div>`;
+ let h=`<div class="flow ${s.comm?'live':''}"><div class="fcol">${s.srcs.map(x=>`<div class="fn src ${x==act?'act':''}" style="--c:${SC[x]}">${SI[x]} ${x}${x=='Solar'&&sol?' · '+f(sol.p.pvp,1)+' kW':''}${edit?`<u onclick="delSrc('${x}')">×</u>`:''}</div>`).join('')}</div>${AR()}${N('ats','<b>ATS</b><small>▶ '+act+'</small>')}`;
+ if(g('rect').length)h+=AR()+N('rect',`<b>RECTIFIER ×${g('rect').length}</b><small>${f(g('rect').reduce((t,e)=>t+ +e.p.dc,0)/g('rect').length,1)} V</small>`);
+ if(g('bat').length)h+=AR('⚡ '+chg+' A')+N('bat',`<b>BATTERY ×${g('bat').length}</b><small>SOC ${f(soc)}%</small>`);
+ if(g('inv').length)h+=AR()+N('inv',`<b>INVERTER ×${g('inv').length}</b><small>${f(g('inv').reduce((t,e)=>t+ +e.p.load,0),1)} kW</small>`);
+ h+=AR()+`<div class="fn" style="border-color:var(--acc)"><b>LOAD</b><small>${f(load(s),1)} kW</small></div></div>`;
+ if(s.srcs.includes('Solar')&&sol)h+=`<div style="font-size:11px;color:var(--mut);margin:-6px 0 10px">☀ Solar → Solar Inverter (${f(sol.p.pvv)} V / ${f(sol.p.pvp,1)} kW) → ATS / MDB &nbsp;|&nbsp; 🟠 Site Generator → ATS</div>`;return h}
+function siteView(s){const l=lvlOf(s),a=atsOf(s),h=health(s),nA=AL.filter(x=>x.sid==s.id&&x.lvl>=1).length,hc=h>=85?'var(--ok)':h>=60?'var(--warn)':'var(--crit)';
+ let o=`<div class="st"><h1 dir="auto">${esc(s.name)}</h1><span style="color:var(--mut)">${s.code} · Site Power Monitoring</span>${badge(l)}<span class="sp"></span>
+<button onclick="addEqM()">＋ Add Equipment</button><button onclick="addSrcM()">＋ Power Source</button><button class="${edit?'p':''}" onclick="edit=!edit;render()">✥ Edit Layout${edit?' (ON)':''}</button><button onclick="scnM('${s.id}')">▶ Scenario</button><button class="d" onclick="delSite()">Delete Site</button></div>
+<div class="ov"><div><span>Site Status</span><b style="color:${col(l)}">${NMS[l]}</b></div><div><span>Communication</span><b>${s.comm?'🟢 ONLINE':'⚫ LOST'}</b>${s.comm?'':'<small>Last data: '+ago(s)+'</small>'}</div><div><span>Total Load</span><b>${f(load(s),1)} kW</b></div><div><span>Current Source</span><b>${SI[srcOf(s)]||''} ${srcOf(s)}</b></div><div><span>Total Voltage</span><b>${a?f(a.p.v):'-'} V</b></div><div><span>Active Alarms</span><b>${nA}</b></div><div><span>Equipment</span><b>${s.eq.length}</b></div><div><span>Last Update</span><b>${new Date(s.last).toLocaleTimeString('en-GB')}</b></div><div><span>Site Health</span><b style="color:${hc}">${f(h)}%</b></div></div>`+flow(s);
+ for(const t of ['ac','bat','inv','rect','gen','ats','solar','smoke']){const L=s.eq.filter(e=>e.t==t);if(L.length)o+=`<div class="sec" data-sec="${t}"><h3>${TY[t].toUpperCase()} · ${L.length}</h3><div class="row">${L.map(e=>card(s,e)).join('')}</div></div>`}return o}
+function tilesView(){return`<div class="st"><h1>Fleet Overview</h1><span style="color:var(--mut)">Select a site from the list</span></div><div class="tiles">${S.sites.map(s=>{const l=lvlOf(s);return`<div class="tile" style="border-top-color:${col(l)}" onclick="pick('${s.id}')"><div style="display:flex;justify-content:space-between"><b dir="auto" style="font-size:16px">${esc(s.name)}</b>${badge(l)}</div><div style="color:var(--mut)">${s.code} · ${s.eq.length} equipment</div><div>${SI[srcOf(s)]||''} ${srcOf(s)}</div><div>${f(load(s),1)} kW · SOC ${f(avg(s.eq.filter(e=>(e.t=='rect'||e.t=='inv')).map(e=>e.p.soc)))}% · Health ${f(health(s))}%</div></div>`}).join('')}</div>`}
+function render(){S.sites.forEach(linkRacks);AL=computeAlarms();notify();hdr();sitesPanel();if(!dragging){const m=$('#main'),sc=m.scrollTop,s=cur();m.innerHTML=s?siteView(s):tilesView();m.scrollTop=sc;if(edit)dnd()}dash()}
+function hdr(){const c=AL.filter(a=>a.lvl==2).length,w=AL.filter(a=>a.lvl==1).length;$('#bell').innerHTML=`🔔 <span style="color:#f87171">🔴 ${c}</span> <span style="color:#facc15">🟡 ${w}</span>`;
+ const fa=AL.find(a=>a.title.startsWith('FIRE')),F=$('#fire');F.style.display=fa?'block':'none';if(fa)F.innerHTML=`🔥 CRITICAL FIRE ALARM — Site: ${esc(fa.sn)} — ${esc(fa.en)} — FIRE DETECTED — ${fa.t} (click to open)`}
+function fireGo(){const a=AL.find(a=>a.title.startsWith('FIRE'));if(a)goto(a.sid,a.eid)}
+function sitesPanel(){const G_=S.grp||'FTTH';$('#sites').innerHTML=`<h2>SITES</h2><div class="grp">${[['FTTH','FTTH'],['WIFI','Wireless WIFI']].map(x=>`<button class="${G_==x[0]?'on':''}" onclick="S.grp='${x[0]}';S.sel=null;save();render()">${x[1]} <small>${S.sites.filter(s=>s.type==x[0]).length}</small></button>`).join('')}</div><div class="chips">${[['all','All'],['alarm','Alarms'],['off','Offline']].map(x=>`<button class="${flt==x[0]?'on':''}" onclick="flt='${x[0]}';render()">${x[1]}</button>`).join('')}</div>`+S.sites.filter(s=>{const l=lvlOf(s);return s.type==G_&&(flt=='all'||(flt=='alarm'&&(l===1||l===2))||(flt=='off'&&l=='off'))}).map(s=>{const l=lvlOf(s);return`<div class="si ${S.sel==s.id?'sel':''}" onclick="pick('${s.id}')"><i style="background:${col(l)}"></i><b dir="auto">${esc(s.name)}</b><em>${s.code} <span class="cm" title="Live cameras" onclick="event.stopPropagation();camM('${s.id}')">📹</span></em><small>${s.comm?f(load(s),1)+' kW · '+srcOf(s):'⚫ Communication lost'}</small></div>`}).join('')}
+const pick=id=>{const _s=S.sites.find(x=>x.id==id);if(_s&&_s.type)S.grp=_s.type;S.sel=id;focusEq=null;edit=false;save();render();$('#main').scrollTop=0},home=()=>{S.sel=null;render()};
+const sec=t=>{const el=document.querySelector(`[data-sec="${t}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})};
+function goto(sid,eid){closeM();const _s=S.sites.find(x=>x.id==sid);if(_s&&_s.type)S.grp=_s.type;S.sel=sid;focusEq=eid;edit=false;render();const el=eid&&document.querySelector(`[data-eq="${eid}"]`);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});const e=cur().eq.find(x=>x.id==eid);if(e.t!='smoke')setTimeout(()=>openEq(eid),500)}setTimeout(()=>{focusEq=null;render()},12000)}
+/* dashboard */
+function tbl(h,rows){return`<table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.join('')}</table>`}
+const row=(sid,eid,c)=>`<tr class="k" onclick="goto('${sid}',${eid?`'${eid}'`:'null'})">${c.map(x=>`<td>${x}</td>`).join('')}</tr>`;
+function dash(){const st=S.sites.map(lvlOf),n=v=>st.filter(x=>x===v).length,on=S.sites.filter(s=>s.comm),gens=S.sites.flatMap(s=>s.eq.filter(e=>e.t=='gen').map(e=>[s,e])),bats=S.sites.flatMap(s=>s.eq.filter(e=>(e.t=='rect'||e.t=='inv')).map(e=>[s,e]));
+ const tl=on.reduce((t,s)=>t+load(s),0),act=AL.filter(a=>a.lvl>=1);
+ const K=[['TOTAL SITES',S.sites.length],['NORMAL',n(0),'var(--ok)'],['WARNING',n(1),'var(--warn)'],['CRITICAL',n(2),'var(--crit)'],['OFFLINE',n('off'),'var(--off)'],['ACTIVE ALARMS',act.length,'var(--crit)'],['GENERATORS RUNNING',gens.filter(g=>g[1].p.run).length],['TOTAL LOAD',tl>=1000?f(tl/1000,2)+' MW':f(tl)+' kW'],['BATTERY SOC (avg)',f(avg(bats.filter(b=>b[0].comm).map(b=>b[1].p.soc)))+'%']];
+ const ic=a=>a.title.startsWith('FIRE')?'🔥':a.lvl==2?'🔴':a.lvl==1?'🟡':'🔵';
+ const alp=AL.map(a=>`<div class="al l${a.lvl}" onclick="goto('${a.sid}',${a.eid?`'${a.eid}'`:'null'})"><span style="font-size:18px">${ic(a)}</span><div><b>${esc(a.title)}</b><small dir="auto">${esc(a.sn)} · ${esc(a.en)}</small><small>${a.param}: ${a.val}${a.unit?' '+a.unit:''} · ${a.t}</small></div></div>`).join('')||'No active alarms';
+ let T='';
+ if(tab=='gen')T=tbl(['Site','Generator','Status','Fuel','Load','Temp'],gens.map(([s,e])=>row(s.id,e.id,[`<span dir="auto">${esc(s.name)}</span>`,e.name,e.p.fault?'🔴 FAULT':e.p.run?'🟢 RUN':'⚪ STANDBY',`<span style="color:${col(e.p.fuel<10?2:e.p.fuel<20?1:0)}">${f(e.p.fuel,1)}%</span>`,f(e.p.load)+' kW',f(e.p.temp)+'°C'])));
+ if(tab=='bat')T=tbl(['Site','Unit','Battery SOC','Batt Voltage','Batt Temp','Status'],bats.map(([s,e])=>row(s.id,e.id,[`<span dir="auto">${esc(s.name)}</span>`,e.name,f(e.p.soc)+'%',f(e.p.bv,1)+' V',f(e.p.btemp)+'°C',badge(eqLvl(e))])));
+ if(tab=='pow')T=tbl(['Site','Current Source','Load','Voltage','Status'],S.sites.map(s=>row(s.id,null,[`<span dir="auto">${esc(s.name)}</span>`,(SI[srcOf(s)]||'')+' '+srcOf(s),f(load(s),1)+' kW',(atsOf(s)?f(atsOf(s).p.v):'-')+' V',badge(lvlOf(s))])));
+ if(tab=='smk')T=tbl(['Site','Sensor','Status','Smoke','Temp'],S.sites.flatMap(s=>s.eq.filter(e=>e.t=='smoke').map(e=>row(s.id,e.id,[`<span dir="auto">${esc(s.name)}</span>`,e.name,e.p.fire?'🔴 FIRE':e.p.ppm>=50?'🟡 SMOKE':'🟢 NORMAL',f(e.p.ppm)+' ppm',f(e.p.temp)+'°C']))));
+ const B=(rows,fm,mx)=>rows.map(r=>`<div class="br" onclick="pick('${r.id}')"><span dir="auto">${esc(r.n)}</span><div><i style="width:${cl(r.v/mx*100,0,100)}%;background:${r.c||'var(--info)'}"></i></div><b>${fm(r.v)}</b></div>`).join('');
+ if(tab=='cht'){const ld=S.sites.map(s=>({id:s.id,n:s.name,v:s.comm?load(s):0})),so=S.sites.map(s=>({id:s.id,n:s.name,v:avg(s.eq.filter(e=>(e.t=='rect'||e.t=='inv')).map(e=>e.p.soc)),c:'var(--ok)'})),tp=S.sites.map(s=>({id:s.id,n:s.name,v:Math.max(0,...s.eq.map(e=>+e.p.temp||0)),c:'var(--warn)'})).sort((a,b)=>b.v-a.v).slice(0,6);
+  T=`<div class="ch"><div><h3>TOTAL SYSTEM LOAD · ${tl>=1000?f(tl/1000,2)+' MW':f(tl)+' kW'}</h3>${B(ld,v=>f(v)+' kW',Math.max(...ld.map(x=>x.v),1))}</div><div><h3>BATTERY SOC</h3>${B(so,v=>f(v)+'%',100)}</div><div><h3>TEMPERATURE — HOTTEST SITES</h3>${B(tp,v=>f(v)+'°C',80)}</div></div>`}
+ if(tab=='sum')T=`<div class="kp"><div><span>Critical</span><b style="color:var(--crit)">${AL.filter(a=>a.lvl==2).length}</b></div><div><span>Warning</span><b style="color:var(--warn)">${AL.filter(a=>a.lvl==1).length}</b></div><div><span>Info</span><b style="color:var(--info)">${AL.filter(a=>a.lvl==0).length}</b></div></div>`+tbl(['Site','Health','Status'],S.sites.map(s=>row(s.id,null,[`<span dir="auto">${esc(s.name)}</span>`,f(health(s))+'%',badge(lvlOf(s))])));
+ const tb=[['gen','Generators'],['bat','Batteries'],['pow','Power Sources'],['smk','Smoke / Fire'],['cht','Charts'],['sum','Alarm Summary']];
+ $('#dash').innerHTML=`<div class="st" style="margin-bottom:6px"><b style="letter-spacing:.1em">CENTRAL SYSTEM DASHBOARD</b><span class="sp"></span><button onclick="$('#dash').classList.toggle('big')">⤢ Expand</button></div><div class="kp">${K.map((k,i)=>`<div class="kc" onclick="kpiM('${KD[i]}')"><span>${k[0]}</span><b style="color:${k[2]||'inherit'}">${k[1]}</b></div>`).join('')}</div><div class="dg"><div class="pnl"><h3 style="margin:0 0 6px;font-size:12px;color:var(--mut)">ACTIVE ALARMS</h3>${alp}</div><div class="pnl"><div class="tabs">${tb.map(t=>`<button class="${tab==t[0]?'on':''}" onclick="tab='${t[0]}';dash()">${t[1]}</button>`).join('')}</div>${T}</div></div>`}
+/* notifications */
+function notify(){const k=new Set(AL.filter(a=>a.lvl>=1).map(a=>a.key));if(prev)AL.filter(a=>a.lvl>=1&&!prev.has(a.key)).forEach(toast);prev=k}
+function toast(a){const d=document.createElement('div');d.className='ts l'+a.lvl;d.innerHTML=`<b>${a.title.startsWith('FIRE')?'🔥':a.lvl==2?'🔴':'🟡'} ${esc(a.title)}</b><br><span dir="auto">${esc(a.sn)}</span> · ${esc(a.en)}`;d.onclick=()=>{d.remove();goto(a.sid,a.eid)};$('#ts').appendChild(d);setTimeout(()=>d.remove(),a.title.startsWith('FIRE')?15000:8000)}
+/* modals */
+function modal(h){$('#mb').innerHTML=h;$('#md').classList.add('on')}
+function closeM(){$('#md').classList.remove('on');camStop()}
+document.addEventListener('keydown',e=>{if(e.key=='Escape')closeM()});
+function alarmCenter(fl){const L=AL.filter(a=>fl=='all'||(fl=='c'&&a.lvl==2)||(fl=='w'&&a.lvl==1));modal(`<h2>Alarm Center</h2><div class="chips">${[['all','All'],['c','Critical'],['w','Warning']].map(x=>`<button onclick="alarmCenter('${x[0]}')">${x[1]}</button>`).join('')}</div>`+tbl(['Level','Alarm','Site','Equipment','Value','Time'],L.map(a=>row(a.sid,a.eid,[a.lvl==2?'🔴':a.lvl==1?'🟡':'🔵',esc(a.title),`<span dir="auto">${esc(a.sn)}</span>`,esc(a.en),a.param+': '+a.val+(a.unit?' '+a.unit:''),a.t])))+`<p style="text-align:right"><button onclick="closeM()">Close</button></p>`)}
+function openEq(id){const s=cur(),e=s.eq.find(x=>x.id==id);if(!e)return;const als=AL.filter(a=>a.eid==id),l=eqLvl(e);
+ const inp=d=>{const v=e.p[d[0]];const i=d[3]=='n'?`<input type="number" step="any" id="f_${d[0]}" value="${v}">`:d[3]=='b'?`<select id="f_${d[0]}"><option value="0" ${v?'':'selected'}>No</option><option value="1" ${v?'selected':''}>Yes</option></select>`:d[3]=='src'?`<select id="f_${d[0]}">${SRC.map(x=>`<option ${x==v?'selected':''}>${x}</option>`).join('')}</select>`:`<input id="f_${d[0]}" value="${esc(v)}">`;return`<div><label>${d[1]}${d[2]?' ('+d[2]+')':''}</label>${i}</div>`};
+ const nk=PD[e.t].filter(d=>d[3]=='n');
+ modal(`<h2>Equipment Details</h2><div class="fg"><div><label>Name</label><input id="f_name" value="${esc(e.name)}"></div><div><label>Type</label><b>${TY[e.t]}</b></div><div><label>Site</label><b dir="auto">${esc(s.name)}</b></div><div><label>Status</label>${badge(l)} ${stx(e)}</div><div><label>Communication</label><b>${s.comm?'ONLINE':'LOST'}</b></div></div>
+ ${als.filter(a=>a.lvl>=1).map(a=>`<div class="ab"><b>${a.lvl==2?'🔴 CRITICAL':'🟡 WARNING'} — ${esc(a.title)}</b><br>Parameter: <b>${a.param}</b> · Current: <b>${a.val}${a.unit?' '+a.unit:''}</b> · Threshold: <b>${a.thr}${a.unit?' '+a.unit:''}</b> · Since ${a.t}</div>`).join('')}
+ <h3>Parameters (DEMO values — editable)</h3><div class="fg">${PD[e.t].map(inp).join('')}</div>
+ <p><button class="p" onclick="saveEq('${id}')">Save</button> <button class="d" onclick="delEq('${id}')">Delete Equipment</button> <button onclick="closeM()">Close</button></p>
+ <h3>History (simulated)</h3><div class="chips"><select id="hk" onchange="hist('${id}')" style="width:auto">${nk.map(d=>`<option value="${d[0]}">${d[1]}</option>`).join('')}</select>${['1h','6h','24h','7d','30d'].map(r=>`<button data-r="${r}" onclick="hist('${id}','${r}')">${r.toUpperCase()}</button>`).join('')}</div><div id="hist"></div>`);if(e.t=='rack')document.querySelectorAll('#mb [id^=f_]').forEach(x=>{if(x.id!='f_name')x.disabled=true});hist(id,'1h')}
+function hist(id,rg){const s=cur(),e=s.eq.find(x=>x.id==id);if(rg)window._rg=rg;rg=window._rg||'1h';const k=$('#hk').value,n={'1h':60,'6h':72,'24h':96,'7d':84,'30d':90}[rg];let sd=[...e.id+k+rg].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);const r=()=>(sd=(sd*1664525+1013904223)>>>0)/4294967296,c=+e.p[k],amp=Math.max(Math.abs(c)*.05,.5),a=[];let v=c;for(let i=0;i<n;i++){a.unshift(v);v+=(c-v)*.08+(r()-.5)*amp}
+ const mn=Math.min(...a),mx=Math.max(...a),sp=(mx-mn)||1,pts=a.map((y,i)=>`${40+i*(500/(n-1))},${150-(y-mn)/sp*130}`).join(' ');
+ $('#hist').innerHTML=`<svg viewBox="0 0 560 175" style="width:100%;background:var(--bg);border-radius:8px"><polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2"/><text x="4" y="24" font-size="10" fill="gray">${f(mx,1)}</text><text x="4" y="150" font-size="10" fill="gray">${f(mn,1)}</text><text x="40" y="170" font-size="10" fill="gray">-${rg}</text><text x="500" y="170" font-size="10" fill="gray">now</text></svg><small style="color:var(--mut)">DEMO / SIMULATED history</small>`}
+function saveEq(id){const e=cur().eq.find(x=>x.id==id);e.name=$('#f_name').value||e.name;PD[e.t].forEach(d=>{const el=$('#f_'+d[0]);if(!el||el.disabled)return;const v=d[3]=='n'?parseFloat(el.value):d[3]=='b'?+el.value:el.value;if(!(d[3]=='n'&&isNaN(v))){e.p[d[0]]=v;e.b[d[0]]=v}});save();closeM();render()}
+function delEq(id){const s=cur(),e=s.eq.find(x=>x.id==id);if(e.t=='smoke'&&s.eq.filter(x=>x.t=='smoke').length==1){alert('Every site must keep at least one Smoke Sensor.');return}if(confirm('Delete '+e.name+'?')){s.eq=s.eq.filter(x=>x.id!=id);save();closeM();render()}}
+function addEqM(){modal(`<h2>Add Equipment</h2><div class="fg"><div><label>Type</label><select id="at">${Object.keys(NM).map(t=>`<option value="${t}">${NM[t]}</option>`).join('')}</select></div></div><p><button class="p" onclick="addEq()">Add</button> <button onclick="closeM()">Cancel</button></p>`)}
+function addEq(){const s=cur(),t=$('#at').value,e=mkE(t,s.eq.filter(x=>x.t==t).length+1);s.eq.push(e);if(t=='solar'&&!s.srcs.includes('Solar'))s.srcs.push('Solar');save();render();openEq(e.id)}
+function addSrcM(){modal(`<h2>Add Power Source</h2><div class="fg"><div><label>Source</label><select id="as">${SRC.map(x=>`<option>${x}</option>`).join('')}</select></div></div><p><button class="p" onclick="const s=cur(),v=$('#as').value;if(!s.srcs.includes(v))s.srcs.push(v);save();closeM();render()">Add</button> <button onclick="closeM()">Cancel</button></p>`)}
+function delSrc(x){const s=cur();s.srcs=s.srcs.filter(y=>y!=x);save();render()}
+function delSite(){const s=cur();if(confirm('Delete site '+s.name+'?')){S.sites=S.sites.filter(x=>x!=s);S.sel=null;save();render()}}
+function addSiteM(){modal(`<h2>Add Site</h2><div class="fg"><div><label>Name</label><input id="sn" value="NEW SITE"></div><div><label>Code</label><input id="sc" value="NW"></div><div><label>Group</label><select id="stp"><option value="FTTH" ${(S.grp||'FTTH')=='FTTH'?'selected':''}>FTTH</option><option value="WIFI" ${S.grp=='WIFI'?'selected':''}>Wireless WIFI</option></select></div></div><div class="fg">${['ac','inv','rect','gen','solar'].map((t,i)=>`<div><label>${NM[t]}s</label><input type="number" min="0" id="n_${t}" value="${[2,1,1,1,0][i]}"></div>`).join('')}</div><div class="fg">${SRC.slice(0,5).map((x,i)=>`<label><input type="checkbox" style="width:auto" class="sx" value="${x}" ${i<3&&i!=2?'checked':''}> ${SI[x]} ${x}</label>`).join('')}</div><p><button class="p" onclick="addSite()">Create</button> <button onclick="closeM()">Cancel</button></p>`)}
+function addSite(){const c={};['ac','inv','rect','gen','solar'].forEach(t=>c[t]=Math.max(0,+$('#n_'+t).value||0));const sx=[...document.querySelectorAll('.sx:checked')].map(x=>x.value);if(c.solar&&!sx.includes('Solar'))sx.push('Solar');if(!sx.length)sx.push(G);c.ats=[{src:sx[0]}];const s=site($('#sn').value||'NEW SITE',$('#sc').value||'NW',c,sx,$('#stp').value);S.grp=$('#stp').value;S.sites.push(s);S.sel=s.id;save();closeM();render()}
+const SCN=[['normal','Normal System'],['bat','Battery Critical'],['temp','High Temperature'],['genfail','Generator Failure'],['lowfuel','Low Fuel'],['rect','Rectifier Failure'],['ac','AC Failure'],['smoke','Smoke Detected'],['fire','Fire Alarm'],['comm','Communication Loss']];
+function scnM(sid){sid=sid||S.sel||(S.sites.find(s=>s.code=='QY')||S.sites[0]).id;modal(`<h2>DEMO SCENARIO</h2><div class="fg"><div><label>Site</label><select id="scs">${S.sites.map(s=>`<option value="${s.id}" ${s.id==sid?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div></div><div style="display:flex;flex-wrap:wrap;gap:6px">${SCN.map(x=>`<button onclick="scn('${x[0]}')">${x[1]}</button>`).join('')}</div><p style="color:var(--mut)">Simulated only — no real equipment is affected.</p><p><button onclick="closeM()">Close</button></p>`)}
+function scn(k){const s=S.sites.find(x=>x.id==$('#scs').value),g=t=>s.eq.filter(e=>e.t==t),L=t=>g(t).slice(-1)[0],F=t=>g(t)[0];let m='';const P=(e,o)=>{if(!e){m='This site has no such equipment';return}Object.assign(e.p,o);Object.assign(e.b,o)};
+ if(k=='normal'){s.comm=1;s.last=Date.now();[...g('rect'),...g('inv')].forEach(e=>P(e,{soc:Math.max(e.p.soc,85),btemp:28,bv:52.8}));g('rack').forEach(e=>P(e,{fault:0}));g('ac').forEach(e=>P(e,{on:1,fault:0,temp:24,cur:8.2,pow:1.8,comp:'ON',fan:'HIGH'}));g('gen').forEach(e=>P(e,{fuel:Math.max(e.p.fuel,60),fault:0,temp:e.p.run?78:25}));g('rect').forEach(e=>P(e,{fail:0,mods:e.p.tot,dc:54.2,cur:126,chg:32,load:68,acin:380,temp:39}));g('smoke').forEach(e=>P(e,{ppm:0,fire:0,temp:26}));g('inv').forEach(e=>P(e,{fault:0,temp:42,src:srcOf(s)}));g('solar').forEach(e=>P(e,{fault:0}));g('ats').forEach(e=>P(e,{fault:0,src:e.p.src=='Battery'?s.srcs[0]:e.p.src}))}
+ if(k=='bat')P(L('rect'),{soc:8,bv:47.2,chg:-30});
+ if(k=='temp'){P(L('rect'),{btemp:48});P(F('ac'),{temp:34})}
+ if(k=='genfail'){P(F('gen'),{run:0,fault:1,load:0,cur:0,rpm:0});if(F('gen')){P(F('ats'),{src:'Battery'});g('inv').forEach(e=>P(e,{src:'Battery'}))}}
+ if(k=='lowfuel')P(F('gen'),{fuel:8});
+ if(k=='rect')P(L('rect'),{fail:1,mods:0,dc:0,cur:0,chg:0,load:0});
+ if(k=='ac')P(F('ac'),{on:0,fault:1,temp:34,cur:0,pow:0,comp:'OFF',fan:'OFF'});
+ if(k=='smoke')P(F('smoke'),{ppm:85,temp:31});
+ if(k=='fire')P(F('smoke'),{ppm:400,fire:1,temp:68});
+ if(k=='comm'){s.comm=0;s.last=Date.now()-120000}
+ if(m){alert(m);return}save();closeM();render()}
+function archM(){const B=['SITE EQUIPMENT','SITE GATEWAY','NBTEL NETWORK','CENTRAL TELEMETRY SERVER','DATABASE','ALARM ENGINE','REAL-TIME SERVICE','NIPM²'];modal(`<h2>SYSTEM ARCHITECTURE</h2><p><b>Current version: DEMO DATA.</b> All readings are simulated inside the browser. No connection to any device, site or network exists.</p><p>Planned production architecture:</p><div style="text-align:center">${B.map((b,i)=>`<div style="border:2px solid ${i==7?'var(--acc)':'var(--ln)'};border-radius:8px;padding:6px;background:var(--bg)"><b>${b}</b></div>${i<7?'<div class="ar">▼</div>':''}`).join('')}</div><p><button onclick="closeM()">Close</button></p>`)}
+
+function linkRacks(s){const R_=s.eq.filter(e=>e.t=='rect'),I_=s.eq.filter(e=>e.t=='inv');s.eq.filter(e=>e.t=='rack').forEach((k,i)=>{const p=k.p,dc=i<R_.length,src=dc?R_[i]:I_[i-R_.length];p.kind=dc?'dc':'ac';
+ if(!src||(dc?src.p.fail:src.p.fault)){p.vin=p.cur=p.load=0;return}
+ if(dc){p.vin=Math.max(0,src.p.dc-.3);p.cur=Math.max(0,src.p.cur-Math.max(0,src.p.chg));p.load=p.vin*p.cur/1000}
+ else{p.vin=+src.p.vout;p.cur=+src.p.cur;p.load=+src.p.load}})}
+function editSiteM(){const s=cur();modal(`<h2>Edit Site</h2><div class="fg"><div><label>Name</label><input id="en" value="${esc(s.name)}"></div><div><label>Code</label><input id="ec" value="${esc(s.code)}"></div><div><label>Group</label><select id="et"><option value="FTTH" ${s.type=='FTTH'?'selected':''}>FTTH</option><option value="WIFI" ${s.type=='WIFI'?'selected':''}>Wireless WIFI</option></select></div></div><p><button class="p" onclick="saveSite()">Save</button> <button onclick="closeM()">Cancel</button></p>`)}
+function saveSite(){const s=cur();s.name=$('#en').value.trim()||s.name;s.code=$('#ec').value.trim()||s.code;s.type=$('#et').value;S.grp=s.type;save();closeM();render()}
+let _cv=null,_hl=[];
+function camStop(){clearInterval(_cv);_cv=null;_hl.forEach(h=>{try{h.destroy()}catch(e){}});_hl=[]}
+function camEl(c){const u=(c.url||'').trim(),st='width:100%;height:100%;border:0;object-fit:contain;display:block';if(!u)return`<canvas class="cv" data-n="${esc(c.name)}" width="320" height="180" style="${st}"></canvas>`;if(/^rtsp:/i.test(u))return`<div style="color:#fff;padding:12px;font-size:12px">RTSP cannot play in a browser. Convert it to HLS/WebRTC (go2rtc / MediaMTX) and paste the .m3u8 link.</div>`;if(/\.(m3u8|mp4|webm)(\?|$)/i.test(u))return`<video data-src="${esc(u)}" autoplay muted playsinline controls style="${st}"></video>`;if(/mjpe?g|\.cgi|action=stream/i.test(u))return`<img src="${esc(u)}" style="${st}">`;return`<iframe src="${esc(u)}" allow="autoplay;fullscreen" style="${st}"></iframe>`}
+function camAttach(){document.querySelectorAll('#mb video[data-src]').forEach(v=>{const u=v.dataset.src;if(/\.m3u8/i.test(u)&&!v.canPlayType('application/vnd.apple.mpegurl')){const go=()=>{if(!window.Hls)return;const h=new Hls();_hl.push(h);h.loadSource(u);h.attachMedia(v)};if(window.Hls)go();else{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js';sc.onload=go;document.head.appendChild(sc)}}else v.src=u});
+const cv=[...document.querySelectorAll('#mb canvas.cv')];if(cv.length)_cv=setInterval(()=>{const t=Date.now()/1000;cv.forEach((c,i)=>{const x=c.getContext('2d'),w=320,h=180,g=x.createLinearGradient(0,0,w,h);g.addColorStop(0,'#0b1626');g.addColorStop(1,'#16263d');x.fillStyle=g;x.fillRect(0,0,w,h);x.strokeStyle='#1f3452';for(let k=0;k<w;k+=40){x.beginPath();x.moveTo(k,0);x.lineTo(k,h);x.stroke()}for(let k=0;k<h;k+=40){x.beginPath();x.moveTo(0,k);x.lineTo(w,k);x.stroke()}x.fillStyle='#1d3350';x.fillRect(40+((t*14+i*60)%220),90,36,60);x.fillStyle='#ff6a13';x.fillRect(0,(t*40+i*30)%h,w,1.5);x.fillStyle='#fff';x.font='11px monospace';x.fillText(c.dataset.n,8,16);x.fillText(new Date().toLocaleString('en-GB'),8,h-8);x.fillStyle='#ef4444';x.beginPath();x.arc(w-14,12,4,0,7);x.fill();x.fillStyle='#8ea3c4';x.fillText('DEMO FEED',w-84,h-8)})},200)}
+function camM(sid){const s=S.sites.find(x=>x.id==(sid||S.sel));if(!s)return;camStop();const C=s.cams||[];modal(`<h2>📹 Cameras — <span dir="auto">${esc(s.name)}</span> <small style="color:var(--mut)">${s.type=='WIFI'?'Wireless WIFI':'FTTH'}</small></h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:10px">${C.map(c=>`<div><div style="display:flex;justify-content:space-between;margin-bottom:3px"><b>${esc(c.name)}</b><span class="bd" style="background:var(--crit)">● LIVE</span></div><div style="background:#000;border-radius:8px;overflow:hidden;aspect-ratio:16/9">${camEl(c)}</div></div>`).join('')||'<p>No cameras linked to this site.</p>'}</div><p><button onclick="camCfgM('${s.id}')">⚙ Manage Cameras</button> <button onclick="closeM()">Close</button></p>`);camAttach()}
+function camCfgM(id){const s=S.sites.find(x=>x.id==id);camStop();modal(`<h2>Manage Cameras — <span dir="auto">${esc(s.name)}</span></h2><p style="color:var(--mut);font-size:12px">Stream URL: HLS (.m3u8), MP4/WebM, MJPEG, or a web player page. Leave empty for the demo feed.</p>${(s.cams||[]).map((c,i)=>`<div class="fg"><div><label>Name</label><input id="cn${i}" value="${esc(c.name)}"></div><div style="grid-column:span 2"><label>Stream URL</label><input id="cu${i}" dir="ltr" value="${esc(c.url||'')}"></div><div><label>&nbsp;</label><button class="d" onclick="camCfgDel('${id}',${i})">Delete</button></div></div>`).join('')}<p><button onclick="camCfgAdd('${id}')">＋ Add Camera</button> <button class="p" onclick="camCfgSave('${id}')">Save</button> <button onclick="camM('${id}')">Back</button></p>`)}
+function camCfgRead(s){(s.cams||[]).forEach((c,i)=>{const n=$('#cn'+i),u=$('#cu'+i);if(n){c.name=n.value.trim()||c.name;c.url=u.value.trim()}})}
+function camCfgAdd(id){const s=S.sites.find(x=>x.id==id);camCfgRead(s);(s.cams=s.cams||[]).push({id:rid(),name:'CAM-'+String(s.cams.length+1).padStart(2,'0'),url:''});save();camCfgM(id)}
+function camCfgDel(id,i){const s=S.sites.find(x=>x.id==id);camCfgRead(s);s.cams.splice(i,1);save();camCfgM(id)}
+function camCfgSave(id){const s=S.sites.find(x=>x.id==id);camCfgRead(s);save();camM(id)}
+
+const KD=['sites','normal','warn','crit','off','alarms','gens','load','soc'],KT=['sites','normal','warn','crit','off','alarms','load','soc','gens'];
+const KPI={sites:['All Sites',s=>1],normal:['Normal Sites',s=>lvlOf(s)===0],warn:['Warning Sites',s=>lvlOf(s)===1],crit:['Critical Sites',s=>lvlOf(s)===2],off:['Offline Sites',s=>lvlOf(s)==='off'],alarms:['Sites with Active Alarms',s=>AL.some(a=>a.sid==s.id&&a.lvl>=1)],gens:['Sites with Generators Running',s=>s.eq.some(e=>e.t=='gen'&&e.p.run)],load:['Total Load — by Site',s=>s.comm],soc:['Battery SOC — by Site',s=>s.comm&&s.eq.some(e=>e.t=='rect'||e.t=='inv')]};
+const socOf=s=>avg(s.eq.filter(e=>e.t=='rect'||e.t=='inv').map(e=>e.p.soc));
+function kpiM(key,grp){grp=grp||'all';const K=KPI[key];if(!K)return;let L=S.sites.filter(K[1]);const cnt={all:L.length,FTTH:L.filter(s=>s.type=='FTTH').length,WIFI:L.filter(s=>s.type=='WIFI').length};if(grp!='all')L=L.filter(s=>s.type==grp);
+ if(key=='load')L.sort((a,b)=>load(b)-load(a));if(key=='soc')L.sort((a,b)=>socOf(a)-socOf(b));
+ const det=s=>{const al=AL.filter(a=>a.sid==s.id&&a.lvl>=1);if(key=='alarms')return al.map(a=>(a.lvl==2?'🔴 ':'🟡 ')+esc(a.title)+' <small>('+esc(a.en)+')</small>').join('<br>');if(key=='load')return f(load(s),1)+' kW · '+esc(srcOf(s));if(key=='soc')return 'SOC '+f(socOf(s))+'%';if(key=='gens')return s.eq.filter(e=>e.t=='gen'&&e.p.run).map(e=>esc(e.name)+' · Fuel '+f(e.p.fuel)+'%').join('<br>');return al.length?al.length+' alarm(s)':'—'};
+ const cs=[['all','All'],['FTTH','FTTH'],['WIFI','Wireless WIFI']].map(x=>`<button class="${grp==x[0]?'on':''}" onclick="kpiM('${key}','${x[0]}')">${x[1]} (${cnt[x[0]]})</button>`).join('');
+ modal(`<h2>${K[0]} <small style="color:var(--mut)">· ${L.length}</small></h2><div class="chips">${cs}</div>`+(L.length?tbl(['Site','Group','Status','Details'],L.map(s=>row(s.id,null,[`<b dir="auto">${esc(s.name)}</b> <small>${esc(s.code)}</small>`,s.type=='WIFI'?'Wireless WIFI':'FTTH',badge(lvlOf(s)),det(s)]))):'<p style="color:var(--mut)">No sites.</p>')+`<p style="text-align:right"><button onclick="closeM()">Close</button></p>`)}
+/* search */
+function srch(q){q=q.trim().toLowerCase();const R_=$('#sr');if(!q){R_.style.display='none';return}const o=[];
+ S.sites.forEach(s=>{if((s.name+s.code).toLowerCase().includes(q))o.push([`🏢 <span dir="auto">${esc(s.name)}</span> <small>${s.type} · ${s.code}</small>`,`pick('${s.id}')`]);s.eq.forEach(e=>{if((e.name+' '+TY[e.t]+' '+e.t).toLowerCase().includes(q))o.push([`${esc(e.name)} <small dir="auto">— ${esc(s.name)}</small>`,`goto('${s.id}','${e.id}')`])})});
+ AL.forEach(a=>{if((a.title+a.sn+a.en).toLowerCase().includes(q))o.push([`⚠ ${esc(a.title)} <small dir="auto">— ${esc(a.sn)} / ${esc(a.en)}</small>`,`goto('${a.sid}',${a.eid?`'${a.eid}'`:'null'})`])});
+ R_.innerHTML=o.slice(0,25).map(x=>`<div onclick="${x[1]};$('#sr').style.display='none';$('#q').value=''">${x[0]}</div>`).join('')||'<div>No results</div>';R_.style.display='block'}
+/* drag & drop layout */
+function dnd(){let did=null;document.querySelectorAll('.eq[draggable="true"]').forEach(c=>{c.ondragstart=e=>{did=c.dataset.eq;dragging=true;e.dataTransfer.setData('text','x')};c.ondragend=()=>{dragging=false};c.ondragover=e=>{if(did)e.preventDefault()};
+ c.ondrop=e=>{e.preventDefault();const s=cur(),a=s.eq.findIndex(x=>x.id==did),b=s.eq.findIndex(x=>x.id==c.dataset.eq);dragging=false;if(a<0||a==b||s.eq[a].t!=s.eq[b].t)return;const[m]=s.eq.splice(a,1);s.eq.splice(b,0,m);save();render()}})}
+boot();
+</script>
+
+<style>
+:root[data-theme="dark"],:root{--bg:#060a11;--pn:#0c1422;--ink:#dce6f5;--mut:#7d8fab;--ln:#1b2a42;--ok:#22c55e;--warn:#f5a524;--crit:#ef4444;--info:#3b82f6;--off:#64748b;--acc:#ff6a13}
+body{background:var(--bg)!important;color:var(--ink)!important}header{background:linear-gradient(#0e1828,#09111d)!important}#dash{height:32vh;min-height:210px;background:#070d17!important}
+#main{padding:8px 12px;position:relative;min-height:0}.rv{position:absolute;inset:8px 12px;display:flex;flex-direction:column;gap:6px}
+.rs{flex:1;min-height:0;border-radius:8px;background:radial-gradient(ellipse at 50% 0,#0f1d33,#070d17);border:1px solid var(--ln)}.rs svg{width:100%;height:100%;display:block}
+.tl{cursor:pointer}.tl:hover>rect:first-child{filter:brightness(1.5)}.sn{font:700 13px "Segoe UI",Arial;fill:#e6eefc}.sv{font:600 14.5px Consolas,"Courier New",monospace;fill:#fff}.ss{font:11.5px Consolas,monospace;fill:#8ea3c4}.sz{font:700 11px "Segoe UI",Arial}.sh{font:700 14px "Segoe UI",Arial;fill:#7fa6d9;letter-spacing:.08em}
+.fl{stroke-dasharray:9 7;animation:fl 1s linear infinite}@keyframes fl{to{stroke-dashoffset:-16}}.fx{stroke:#3b82f6!important;stroke-width:4!important;animation:fb .8s infinite}@keyframes fb{50%{stroke-opacity:.2}}
+.cs{display:flex;gap:6px;flex-wrap:wrap}.cs div{background:#0c1626;border:1px solid var(--ln);border-radius:6px;padding:4px 10px}.cs span{display:block;font-size:10px;color:var(--mut);letter-spacing:.06em}.cs b{font:600 14px Consolas,monospace}
+.nd{display:grid;grid-template-columns:1fr 350px;gap:12px}.nk{grid-column:1/-1;display:grid;grid-template-columns:repeat(9,1fr);gap:8px}.nk div{background:linear-gradient(#0f1a2d,#0a1321);border:1px solid var(--ln);border-top:3px solid var(--c,#3b82f6);border-radius:8px;padding:8px 12px}.nk span{font-size:10px;color:var(--mut);letter-spacing:.08em}.nk b{display:block;font:700 26px Consolas,monospace;color:var(--c,#fff)}
+.ng{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:10px;align-content:start}.nt{background:linear-gradient(#101c31,#0a1322);border:1px solid var(--ln);border-top:4px solid var(--c);border-radius:8px;padding:10px 12px;cursor:pointer}.nt:hover{border-color:var(--c);transform:translateY(-2px)}.nt.c2{box-shadow:0 0 18px #ef444455;animation:fb 1.4s infinite}
+.nt h4{margin:0;display:flex;justify-content:space-between;font-size:15px}.nt small{color:var(--mut)}.nt .m{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:8px;font:12px Consolas,monospace}.nt .m span{color:var(--mut);font-family:"Segoe UI";font-size:10px;display:block}.nt .bar{height:5px;background:#16233a;border-radius:3px;margin-top:8px}.nt .bar i{display:block;height:100%;border-radius:3px;background:var(--c)}
+.af{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:8px;max-height:calc(100vh - 290px);overflow:auto}.af h5{margin:0 0 6px;color:var(--acc);letter-spacing:.08em}.ai{padding:6px 8px;border-inline-start:4px solid var(--c);background:#0f1a2d;margin-bottom:4px;border-radius:4px;cursor:pointer;font-size:12px}.ai:hover{background:#15243c}.ai small{color:var(--mut);display:block}
+.pm{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:6px 0}.adm h3{margin:14px 0 6px;color:var(--acc)}.adm table{width:100%;font-size:12px}.adm .on{color:#22c55e}.adm .of{color:#64748b}
+@media(max-width:1100px){.nd{grid-template-columns:1fr}.nk{grid-template-columns:repeat(3,1fr)}}
+</style>
+<script>
+(function(){
+document.documentElement.setAttribute('data-theme','dark');
+const LCN=['#22c55e','#f5a524','#ef4444'],C=l=>typeof l=='string'?'#64748b':LCN[l];
+/* deterministic one-time reseed (no random values) */
+if(!localStorage.getItem('nipm2_det3')){let a=20260930;const r=Math.random;Math.random=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};try{boot(true)}catch(e){}Math.random=r;localStorage.setItem('nipm2_det3','1')}
+/* smooth deterministic telemetry (slow sine waves, no noise) */
+const hs=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)};
+window.drift=function(e){const t=Date.now()/1000,p=e.p,b=e.b,d=DR[e.t]||{};for(const k in d){const h=hs(e.id+k);p[k]=(v=>(k=='chg'||k=='bcur')?v:Math.max(0,v))(b[k]+Math.sin(2*Math.PI*t/(120+h%240)+h%628/100)*d[k]*.5)}
+if((e.t=='rect'||e.t=='inv'))p.soc=cl(p.soc,0,100);if(e.t=='ac'&&!p.on){p.cur=0;p.pow=0}
+if(e.t=='gen'){if(p.run){b.fuel=Math.max(0,b.fuel-.01);p.fuel=b.fuel;p.runtime=(p.runtime||0)+3/3600}else{p.load=p.cur=p.rpm=p.v=p.f=0}}
+if(e.t=='smoke'&&p.fire)p.ppm=Math.max(p.ppm,300)};
+const TG={rack:'RACK',ac:'AC',bat:'BAT',inv:'INV',rect:'RECT',gen:'GEN',ats:'ATS',smoke:'SMK',solar:'PV'};
+const ICO={ac:'<rect x="2" y="6" width="28" height="11" rx="2"/><path d="M6 21l-2 6M16 21v6M26 21l2 6"/>',bat:'<rect x="7" y="3" width="18" height="26" rx="2"/><path d="M7 12h18M7 20h18"/>',inv:'<rect x="4" y="4" width="24" height="24" rx="2"/><path d="M8 16q4-8 8 0t8 0"/>',rect:'<rect x="4" y="4" width="24" height="24" rx="2"/><path d="M9 9v14M14 9v14M19 9v14M24 9v14"/>',gen:'<rect x="2" y="9" width="28" height="16" rx="2"/><circle cx="12" cy="17" r="5"/><path d="M21 13h6M21 19h6"/>',solar:'<path d="M3 24l5-18h21l-5 18zM6 15h22M16 6l-3 18M23 6l-3 18"/>',grid:'<path d="M16 2l-7 26M16 2l7 26M11 12h10M9 19h14M13 7h6"/>',smoke:'<circle cx="16" cy="16" r="11"/><circle cx="16" cy="16" r="4"/>',temp:'<path d="M14 4a3 3 0 016 0v14a6 6 0 11-6 0z"/>',sw:'<circle cx="6" cy="22" r="2"/><circle cx="26" cy="22" r="2"/><path d="M8 22l14-12"/>'};
+ICO.rack='<rect x="5" y="3" width="22" height="26" rx="2"/><path d="M5 10h22M5 17h22M5 24h22"/>';
+const ic=(k,x,y,c,s)=>`<g transform="translate(${x},${y}) scale(${s||1})" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICO[k]}</g>`;
+const T_=(x,y,c,t,a)=>`<text x="${x}" y="${y}" class="${c}"${a?` text-anchor="${a}"`:''}>${esc(t)}</text>`;
+function RD(e){const p=e.p;switch(e.t){case'ac':return[`${f(p.temp,1)}°C  ${p.on?'RUN':'OFF'}`,`SP ${f(p.set)}° · ${f(p.cur,1)}A · ${f(p.pow,1)}kW`];case'rack':return[`${f(p.vin,1)}V  ${f(p.cur,1)}A`,`${p.kind=='ac'?'AC':'DC'} LOAD ${f(p.load,2)} kW`];case'bat':return[`${f(p.soc)}%  ${f(p.v,1)}V`,`${p.cur>=0?'CHG':'DIS'} ${f(Math.abs(p.cur),1)}A · ${f(p.temp)}°C · SOH ${f(p.health)}%`];case'inv':return[`${f(p.load,1)}kW  ${f(p.loadPct)}%`,`BAT ${f(p.soc)}% ${f(p.bv,1)}V ${p.bcur>=0?'CHG':'DIS'} ${f(Math.abs(p.bcur))}A`];case'rect':return[`${f(p.dc,1)}V  ${f(p.cur)}A`,`BAT ${f(p.soc)}% ${f(p.bv,1)}V ${p.chg>=0?'CHG':'DIS'} ${f(Math.abs(p.chg))}A`];case'gen':return[`FUEL ${f(p.fuel)}%  ${p.run?'RUN':'STBY'}`,`${f(p.load)}kW · ${f(p.v)}V · ${f(p.temp)}°C`];case'solar':return[`${f(p.pvp,1)}kW  ${f(p.pvv)}V`,`${f(p.pvc,1)}A · ${f(p.gen,1)}kWh · ${f(p.temp)}°C`];case'smoke':return[`${p.fire?'FIRE':'NORMAL'}  ${f(p.ppm)}ppm`,`${f(p.temp)}°C`];default:return['','']}}
+const stt=(e,lv)=>lv==2?'ALARM':lv==1?'WARN':(e.t=='ac'&&!e.p.on)||(e.t=='gen'&&!e.p.run)?'STBY':'NORMAL';
+const roomT=s=>{const a=s.eq.filter(e=>e.t=='ac'),m=s.eq.find(e=>e.t=='smoke');return a.length?avg(a.map(e=>e.p.temp)):m?m.p.temp:25};
+function siteView(s){
+const ats=atsOf(s),act=ats?ats.p.src:'',live=!!s.comm,g=t=>s.eq.filter(e=>e.t==t),l=lvlOf(s),h=health(s),nA=AL.filter(x=>x.sid==s.id&&x.lvl>=1);
+const tag=e=>s.code+'-'+TG[e.t]+'-'+String(g(e.t).indexOf(e)+1).padStart(2,'0');
+let L='',D='';
+const W=(pts,on,c)=>{const a=on&&live;return`<polyline class="${a?'fl':''}" points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${a?c:'#2a3a55'}" stroke-width="3.4" ${a?'':'stroke-dasharray="6 6"'}/>`};
+const box=(x,y,w,hh,c,t,b)=>`<rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="5" fill="#0a1424" stroke="${c||'#23334f'}" stroke-width="1.6"/>${t?T_(x+10,y+19,'sh',t):''}`;
+const tile=(e,x,y,w,hh)=>{const lv=eqLvl(e),c=LCN[lv],r=RD(e),fx=focusEq==e.id;return`<g class="tl" data-eq="${e.id}" onclick="openEq('${e.id}')"><rect class="${fx?'fx':''}" x="${x}" y="${y}" width="${w}" height="${hh}" rx="4" fill="${lv==2?'#2a0f14':'#0c1626'}" stroke="${c}" stroke-width="${lv?2.4:1.2}"/><rect x="${x}" y="${y}" width="5" height="${hh}" fill="${c}"/>${ic(e.t,x+13,y+hh/2-14,'#7fa6d9',.9)}${T_(x+46,y+17,'sn',e.name)}${T_(x+w-8,y+16,'sz',stt(e,lv),'end').replace('class="sz"',`class="sz" fill="${c}"`)}${T_(x+46,y+35,'sv',r[0])}${hh>=54?T_(x+46,y+50,'ss',r[1]):''}</g>`};
+const tp=(n,av,gap=7)=>Math.min(66,(av-(n-1)*gap)/Math.max(1,n));
+/* ---- outdoor yard ---- */
+const srcs=s.srcs.length?s.srcs:['National Grid'],n=srcs.length,hS=Math.min(104,(620-(n-1)*12)/n),ATY=170,ATH=330,ys=[];
+D+=T_(10,34,'sh','OUTDOOR · POWER SOURCES')+T_(600,34,'sh','INDOOR · POWER ROOM');
+const order=[...srcs.keys()].sort((a,b)=>(srcs[a]==act)-(srcs[b]==act));
+srcs.forEach((x,i)=>{const y=62+i*(hS+12),yc=y+hS/2,on=x==act,c=SC[x]||'#888',ge=x=='Site Generator'?g('gen')[0]:null,so=x=='Solar'?g('solar')[0]:null,lv=ge?eqLvl(ge):so?eqLvl(so):0;ys[i]=yc;
+const k=x=='National Grid'?'grid':/Gen/.test(x)?'gen':x=='Solar'?'solar':x=='Battery'?'bat':'inv';let l1,l2;
+if(x=='National Grid'||x=='Commercial Generator'){l1=on?`${f(ats.p.v)}V · ${f(ats.p.f,1)}Hz`:'AVAILABLE · 400V';l2=on?'SUPPLYING SITE':'STANDBY'}
+else if(ge){l1=`FUEL ${f(ge.p.fuel)}% · ${ge.p.run?'RUN':'STBY'}`;l2=`${f(ge.p.load)}kW · ${f(ge.p.v)}V · ${f(ge.p.temp)}°C`}
+else if(so){l1=`${f(so.p.pvp,1)}kW · ${f(so.p.pvv)}V`;l2=`${f(so.p.gen,1)}kWh today`}
+else if(x=='Battery'){const b=[...g('rect'),...g('inv')];l1=`SOC ${f(avg(b.map(e=>e.p.soc)))}%`;l2=on?'ON BATTERY':'STANDBY'}else{l1=on?'ACTIVE':'STANDBY';l2=''}
+D+=`<g class="tl" ${ge?`data-eq="${ge.id}" onclick="openEq('${ge.id}')"`:so?`onclick="openEq('${so.id}')"`:''}><rect x="10" y="${y}" width="330" height="${hS}" rx="5" fill="${on?'#0f1f36':'#0a1424'}" stroke="${lv?LCN[lv]:on?c:'#23334f'}" stroke-width="${on||lv?2.6:1.2}"/><rect x="10" y="${y}" width="6" height="${hS}" fill="${c}"/>${ic(k,24,yc-18,c,1.1)}${T_(68,yc-10,'sn',x)}${T_(68,yc+10,'sv',l1)}${T_(68,yc+27,'ss',l2)}${on?T_(330,y+18,'sz','● ACTIVE','end').replace('class="sz"','class="sz" fill="#22c55e"'):''}${ge?`<rect x="68" y="${y+hS-12}" width="200" height="5" rx="2" fill="#16233a"/><rect x="68" y="${y+hS-12}" width="${2*ge.p.fuel}" height="5" rx="2" fill="${ge.p.fuel<20?'#ef4444':'#ea580c'}"/>`:''}</g>`});
+const ay=i=>ATY+34+(n>1?i*(ATH-68)/(n-1):(ATH-68)/2);
+order.forEach(i=>{const on=srcs[i]==act,xv=352+i*6;L+=W([[340,ys[i]],[xv,ys[i]],[xv,ay(i)],[410,ay(i)]],on,SC[srcs[i]]||'#22c55e')});
+const alv=ats?eqLvl(ats):0;
+D+=`<g class="tl" ${ats?`data-eq="${ats.id}" onclick="openEq('${ats.id}')"`:''}><rect x="410" y="${ATY}" width="130" height="${ATH}" rx="6" fill="#111d31" stroke="${LCN[alv]}" stroke-width="2.6"/>${T_(475,ATY+-8,'sh','ATS','middle')}${ic('sw',459,ATY+8,'#7fa6d9',1.2)}${T_(475,ATY+62,'sn','OUTDOOR CABINET','middle')}${T_(475,ATY+98,'ss','SOURCE','middle')}${T_(475,ATY+116,'sv',ats?ats.p.src.replace('Commercial','Comm.'):'—','middle')}${ats?[`${f(ats.p.v)} V`,`${f(ats.p.cur)} A`,`${f(ats.p.f,1)} Hz`,`PF ${f(ats.p.pf,2)}`,`${f(ats.p.load,1)} kW`].map((t,i)=>T_(475,ATY+150+i*26,'sv',t,'middle')).join(''):''}${T_(475,ATY+ATH-12,'sz','● ONLINE','middle').replace('class="sz"','class="sz" fill="#22c55e"')}</g>`;
+/* wall */
+D+=`<rect x="572" y="20" width="8" height="690" fill="#22324d"/><rect x="580" y="20" width="1170" height="690" fill="#08111e" opacity=".55"/>`;
+const mdy=340;L+=W([[540,mdy],[600,mdy]],1,SC[act]||'#22c55e');
+/* ---- indoor ---- */
+const ac=g('ac'),rc=g('rect'),bt=g('rack'),iv=g('inv');
+D+=`<rect x="600" y="46" width="120" height="634" rx="5" fill="#111d31" stroke="#2c4467" stroke-width="2"/>${T_(660,74,'sh','MDB','middle')}${T_(660,92,'ss','LV DISTRIBUTION','middle')}${ats?[`${f(ats.p.v)} V`,`${f(ats.p.cur)} A`,`${f(ats.p.load,1)} kW`,`PF ${f(ats.p.pf,2)}`].map((t,i)=>T_(660,mdy-10+i*24,'sv',t,'middle')).join(''):''}${T_(660,mdy+110,'ss','Q1 AC SWITCH','middle')}${T_(660,mdy+128,'ss','Q2 RECTIFIERS','middle')}${T_(660,mdy+146,'ss','Q3 INVERTERS','middle')}`;
+const feed=(yc,on=1)=>{L+=W([[720,yc],[770,yc]],on,SC[act]||'#22c55e');D+=`<rect x="738" y="${yc-6}" width="12" height="12" fill="${on&&live?'#22c55e':'#64748b'}" rx="2"/>`};
+/* AC switch (separate) */
+const acKW=ac.reduce((t,e)=>t+(e.p.on?+e.p.pow:0),0);feed(79);
+D+=`<rect x="770" y="50" width="130" height="58" rx="4" fill="#0c1626" stroke="#2c4467" stroke-width="1.4"/>${ic('sw',778,62,'#7fa6d9',1)}${T_(816,70,'sn','AC SWITCH')}${T_(816,88,'sv',f(acKW,1)+' kW')}${T_(816,102,'ss','QF-AC')}`;
+if(ac.length){const aw=Math.min(175,(560-(ac.length-1)*8)/ac.length);L+=W([[900,79],[930+ac.length*(aw+8)-8-aw/2,79]],ac.some(e=>e.p.on),'#38bdf8');ac.forEach((e,i)=>D+=tile(e,930+i*(aw+8),50,aw,58))}
+/* each unit -> its own rack -> its own load (no shared bus) */
+D+=T_(770,128,'ss','POWER UNIT')+T_(1030,128,'ss','RACK')+T_(1275,128,'ss','LOAD');
+const ru=[...rc.map((e,i)=>({e,k:'r',rk:bt[i]})),...iv.map((e,j)=>({e,k:'i',rk:bt[rc.length+j]})),...bt.slice(rc.length+iv.length).map(rk=>({e:null,k:'x',rk}))];
+const nr=Math.max(ru.length,1),gp=7,grp=(rc.length&&iv.length)?16:0,th=Math.min(66,(525-(nr-1)*gp-grp)/nr);let yy=140;
+ru.forEach((u,i)=>{if(rc.length&&i==rc.length)yy+=grp;const y=yy,yc=y+th/2;yy+=th+gp;
+ if(!u.e){D+=tile(u.rk,1030,y,220,th);return}
+ const e=u.e,isR=u.k=='r',ok=isR?!e.p.fail:!e.p.fault,wc=isR?'#f5a524':'#22c55e',n=isR?i+1:i-rc.length+1;
+ feed(yc,ok);D+=tile(e,770,y,220,th);
+ if(u.rk){L+=W([[990,yc],[1030,yc]],ok,wc);D+=tile(u.rk,1030,y,220,th);L+=W([[1250,yc],[1275,yc]],ok,wc)}else L+=W([[990,yc],[1275,yc]],ok,wc);
+ const kw=!ok?0:isR?Math.max(0,e.p.dc*Math.max(0,e.p.cur-Math.max(0,e.p.chg))/1000):+e.p.load;
+ D+=`<rect x="1275" y="${y}" width="215" height="${th}" rx="4" fill="#0c1626" stroke="#2c4467" stroke-width="1.3"/><rect x="1275" y="${y}" width="5" height="${th}" fill="${wc}"/>`+T_(1290,y+17,'sh',(isR?'DC':'AC')+' LOAD '+n)+T_(1290,y+Math.min(40,th-8),'sv',f(kw,2)+' kW').replace('class="sv"','class="sv" style="font-size:17px"')+(th>=60?T_(1290,y+56,'ss',u.rk?u.rk.name+' ▶ '+(isR?'DC':'AC')+' LOAD':'DIRECT FROM '+(isR?'RECTIFIER ':'INVERTER ')+n):'')});
+/* right column: summary, environment, alarms */
+D+=`<rect x="1510" y="46" width="235" height="110" rx="5" fill="#0c1626" stroke="${C(l)}" stroke-width="1.6"/>${T_(1520,66,'sh','SITE SUMMARY')}${T_(1520,94,'sv','LOAD '+f(load(s),1)+' kW')}${T_(1520,116,'sv','HEALTH '+f(h)+'%')}${T_(1520,138,'sv','ALARMS '+nA.length)}`;
+D+=`<rect x="1510" y="${nA.length?430:430}" width="235" height="250" rx="5" fill="#0c1626" stroke="${nA.length?C(Math.max(...nA.map(a=>a.lvl))):'#23334f'}" stroke-width="1.6"/>${T_(1520,452,'sh','SITE ALARMS')}${nA.length?nA.slice(0,8).map((a,i)=>`<g class="tl" onclick="${a.eid?`openEq('${a.eid}')`:''}">${T_(1520,478+i*24,'ss','●').replace('class="ss"','class="ss" fill="'+LCN[a.lvl]+'"')}${T_(1536,478+i*24,'ss',(a.title+' '+a.val+(a.unit||'')).slice(0,29))}</g>`).join(''):T_(1520,500,'sv','NO ACTIVE ALARMS').replace('class="sv"','class="sv" fill="#22c55e"')}`;
+const rt=roomT(s),sm=g('smoke'),rh=38+hs(s.code)%12,EX=1520,EY=172;const gx=v=>EX+Math.max(0,Math.min(1,(v-18)/22))*215;
+D+=`<rect x="1510" y="${EY-2}" width="235" height="240" rx="5" fill="#0c1626" stroke="#2c4467" stroke-width="1.4"/>${T_(EX,EY+20,'sh','ROOM ENVIRONMENT')}${ic('temp',EX,EY+30,'#7fa6d9',1.1)}${T_(EX+45,EY+46,'ss','TS-01 ROOM TEMP')}${T_(EX+45,EY+74,'sv',f(rt,1)+' °C').replace('class="sv"','class="sv" style="font-size:26px"')}<rect x="${EX}" y="${EY+90}" width="215" height="8" rx="4" fill="#16233a"/><rect x="${EX}" y="${EY+90}" width="${gx(Math.min(rt,28))-EX}" height="8" fill="#22c55e"/>${rt>28?`<rect x="${gx(28)}" y="${EY+90}" width="${gx(Math.min(rt,32))-gx(28)}" height="8" fill="#f5a524"/>`:''}${rt>32?`<rect x="${gx(32)}" y="${EY+90}" width="${gx(rt)-gx(32)}" height="8" fill="#ef4444"/>`:''}${T_(EX,EY+116,'ss','18 ─ 28 OK · 32+ ALARM')}${T_(EX,EY+142,'sv','RH '+rh+' %')}${sm.map((e,i)=>tile(e,EX,EY+156,215,58)).join('')}`;
+const sc=[...srcs].length;
+const svg=`<svg viewBox="0 0 1760 725" preserveAspectRatio="xMidYMid meet"><g style="opacity:${live?1:.4}">${L}${D}</g>${T_(10,716,'ss',`SCAN 3 s · QUALITY GOOD · ${new Date(s.last).toLocaleTimeString('en-GB')} · DEMO / SIMULATED DATA`)}${live?'':'<text x="880" y="360" text-anchor="middle" style="fill:#fff;font:700 40px Segoe UI">⚫ COMMUNICATION LOST</text>'}</svg>`;
+return`<div class="rv"><div class="st" style="margin:0"><h1 dir="auto" style="font-size:22px">${esc(s.name)}</h1><span style="color:var(--mut)">${s.type=='WIFI'?'Wireless WIFI':'FTTH'} · ${s.code} · SCADA MIMIC</span>${badge(l)}<span class="sp"></span><button onclick="camM('${s.id}')" title="Live cameras">📹 Cameras</button><button onclick="editSiteM()">✎ Edit Site</button><button onclick="addEqM()">＋ Equipment</button><button onclick="addSrcM()">＋ Power Source</button><button onclick="scnM('${s.id}')">▶ Scenario</button><button class="d" onclick="delSite()">Delete Site</button></div><div class="cs"><div><span>COMM</span><b style="color:${live?'#22c55e':'#94a3b8'}">${live?'ONLINE':'LOST'}</b></div><div><span>SOURCE</span><b>${esc(srcOf(s))}</b></div><div><span>LOAD</span><b>${f(load(s),1)} kW</b></div><div><span>ROOM TEMP</span><b>${f(rt,1)} °C</b></div><div><span>ALARMS</span><b style="color:${nA.length?'#f5a524':'#22c55e'}">${nA.length}</b></div><div><span>HEALTH</span><b>${f(h)}%</b></div></div><div class="rs">${svg}</div></div>`}
+window.siteView=siteView;
+/* ---- NOC overview ---- */
+window.tilesView=function(){const st=S.sites.map(lvlOf),c=v=>st.filter(x=>x===v).length,al=AL.filter(a=>a.lvl>=1).sort((a,b)=>b.lvl-a.lvl),on=S.sites.filter(s=>s.comm),tl=on.reduce((n,s)=>n+load(s),0),bats=S.sites.flatMap(s=>s.eq.filter(e=>(e.t=='rect'||e.t=='inv'))),gens=S.sites.flatMap(s=>s.eq.filter(e=>e.t=='gen'&&e.p.run)).length;
+const K=[['SITES',S.sites.length,'#3b82f6'],['NORMAL',c(0),'#22c55e'],['WARNING',c(1),'#f5a524'],['CRITICAL',c(2),'#ef4444'],['OFFLINE',st.filter(x=>typeof x=='string').length,'#64748b'],['ACTIVE ALARMS',al.length,'#f5a524'],['TOTAL LOAD',f(tl/1000,2)+' MW','#38bdf8'],['AVG BATTERY SOC',f(avg(bats.map(e=>e.p.soc)))+'%','#22c55e'],['GENSETS RUNNING',gens,'#ea580c']];
+const mix={};S.sites.forEach(s=>{const x=srcOf(s);mix[x]=(mix[x]||0)+1});
+return`<div class="nd"><div class="nk">${K.map((k,i)=>`<div class="kc" style="--c:${k[2]}" onclick="kpiM('${KT[i]}')"><span>${k[0]}</span><b>${k[1]}</b></div>`).join('')}</div>
+<div><div style="color:var(--mut);font-size:11px;letter-spacing:.08em">CURRENT POWER SOURCE MIX</div><div class="pm">${Object.keys(mix).map(x=>`<i style="width:${mix[x]/S.sites.length*100}%;background:${SC[x]||'#888'}" title="${x}: ${mix[x]}"></i>`).join('')}</div><div style="font-size:11px;color:var(--mut);margin-bottom:10px">${Object.keys(mix).map(x=>`<span style="color:${SC[x]||'#888'}">■</span> ${x} (${mix[x]}) &nbsp;`).join('')}</div>
+<div class="ng">${S.sites.map(s=>{const l=lvlOf(s),cc=C(l),b=s.eq.filter(e=>(e.t=='rect'||e.t=='inv')),nA=AL.filter(a=>a.sid==s.id&&a.lvl>=1).length;return`<div class="nt ${l===2?'c2':''}" style="--c:${cc}" onclick="pick('${s.id}')"><h4><b dir="auto">${esc(s.name)}</b><span style="color:${cc}">${s.type=='WIFI'?'WIFI':'FTTH'} · ${s.code}</span></h4><small>${typeof l=='string'?'⚫ COMMUNICATION LOST':(l===2?'CRITICAL':l===1?'WARNING':'NORMAL')} · ${nA} alarm(s)</small><div class="m"><div><span>LOAD</span>${f(load(s),1)} kW</div><div><span>SOURCE</span>${esc(srcOf(s))}</div><div><span>BATTERY SOC</span>${b.length?f(avg(b.map(e=>e.p.soc)))+' %':'—'}</div><div><span>ROOM TEMP</span>${f(roomT(s),1)} °C</div></div><div class="bar"><i style="width:${Math.min(100,load(s))}%"></i></div></div>`}).join('')}</div></div>
+<div class="af"><h5>ALARM FEED</h5>${al.slice(0,18).map(a=>`<div class="ai" style="--c:${LCN[a.lvl]}" onclick="goto('${a.sid}',${a.eid?`'${a.eid}'`:'null'})"><b>${esc(a.title)}</b><small>${a.t} · ${esc(a.sn)} · ${esc(a.en)}</small><small>${esc(a.param)}: ${a.val}${a.unit||''} (thr ${a.thr}${a.unit||''})</small></div>`).join('')||'<div style="color:#22c55e">No active alarms</div>'}</div></div>`};
+try{render()}catch(e){}
+})();
+</script>
+<script>
+(function(){
+const LG='nipm2_log',PR='nipm2_pres',SK='nipm2_sess',J=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},me=()=>sessionStorage.getItem(SK),E=s=>esc(String(s));
+window.__log=a=>{const l=J(LG,[]);l.push({t:Date.now(),u:me()||'-',a});if(l.length>300)l.splice(0,l.length-300);localStorage.setItem(LG,JSON.stringify(l))};
+window.__unpres=()=>{const p=J(PR,{});delete p[me()];localStorage.setItem(PR,JSON.stringify(p))};
+const beat=()=>{const u=me();if(!u)return;const p=J(PR,{}),s=S.sel?S.sites.find(x=>x.id==S.sel):null;p[u]={t:Date.now(),site:s?s.name:'Dashboard'};localStorage.setItem(PR,JSON.stringify(p))};setInterval(beat,5000);setTimeout(beat,1500);
+const LB={addEq:'Added equipment',delEq:'Deleted equipment',saveEq:'Edited equipment',addSite:'Added site',delSite:'Deleted site',scn:'Ran demo scenario',delSrc:'Removed power source',saveSite:'Edited site',camCfgSave:'Edited cameras'};
+Object.keys(LB).forEach(n=>{const o=window[n];if(typeof o!=='function')return;window[n]=function(){const s=S.sel?S.sites.find(x=>x.id==S.sel):null;__log(LB[n]+(s?' @ '+s.name:''));return o.apply(this,arguments)}});
+const tm=t=>new Date(t).toLocaleString('en-GB');
+window.adminM=function(){const U=J('nipm2_users',[]),L=J(LG,[]),P=J(PR,{}),n=Date.now(),on=u=>P[u]&&n-P[u].t<20000;
+const last=u=>{const x=[...L].reverse().find(l=>l.u==u&&l.a=='Signed in');return x?tm(x.t):'—'},cnt=u=>L.filter(l=>l.u==u&&l.a=='Signed in').length,lact=u=>{const x=[...L].reverse().find(l=>l.u==u&&l.a!='Signed in'&&l.a!='Signed out');return x?x.a+' · '+new Date(x.t).toLocaleTimeString('en-GB'):'—'};
+modal(`<div class="adm"><h2>⚙ Admin Settings</h2><p style="color:var(--mut);margin:0">Session tracking is stored in this browser only (demo). A real deployment would keep it on the server.</p>
+<h3>ONLINE NOW (${U.filter(x=>on(x.u)).length})</h3>${U.filter(x=>on(x.u)).map(x=>`<div><span class="on">●</span> <b>${E(x.u)}</b> (${x.role}) — viewing: ${E(P[x.u].site)}</div>`).join('')||'<div style="color:var(--mut)">Nobody</div>'}
+<h3>USERS</h3><table><tr><th></th><th>User</th><th>Role</th><th>Last sign-in</th><th>Sign-ins</th><th>Last action</th><th></th></tr>${U.map((x,i)=>`<tr><td class="${on(x.u)?'on':'of'}">●</td><td>${E(x.u)}</td><td><select onchange="uRole(${i},this.value)"><option value="viewer"${x.role=='viewer'?' selected':''}>Viewer</option><option value="admin"${x.role=='admin'?' selected':''}>Admin</option></select></td><td>${last(x.u)}</td><td>${cnt(x.u)}</td><td>${E(lact(x.u))}</td><td><button onclick="uPw(${i})">Password</button> <button onclick="uDel(${i})">✕</button></td></tr>`).join('')}</table>
+<h3>ADD USER</h3><div class="fg"><div><label>Username</label><input id="nu"></div><div><label>Password</label><input id="np" type="password"></div><div><label>Role</label><select id="nr"><option value="viewer">Viewer (read-only)</option><option value="admin">Admin</option></select></div></div><p><button class="p" onclick="uAdd()">Add user</button> <button onclick="closeM()">Close</button></p>
+<h3>ACTIVITY LOG</h3><div style="max-height:190px;overflow:auto"><table>${[...L].reverse().slice(0,40).map(l=>`<tr><td>${tm(l.t)}</td><td>${E(l.u)}</td><td>${E(l.a)}</td></tr>`).join('')}</table></div></div>`)};
+window.usersM=window.adminM;
+})();
+</script>
+<style>
+#lg{position:fixed;inset:0;z-index:99999;background:#0f141b;display:flex;align-items:center;justify-content:center;font-family:inherit}
+#lg .b{background:#171e29;border:1px solid #2c3a4d;border-top:3px solid #ff6a13;border-radius:10px;padding:28px;width:min(360px,92vw);color:#e6ebf2}
+#lg h2{margin:0 0 4px}#lg p{margin:0 0 16px;color:#8a98ab;font-size:12px}#lg input{width:100%;margin:5px 0 10px;padding:9px;background:#1e2836;border:1px solid #2c3a4d;border-radius:6px;color:#fff;font:inherit}
+#lg button{width:100%;padding:10px;background:#ff6a13;border:0;border-radius:6px;color:#fff;font-weight:700;cursor:pointer}#lger{color:#f87171;min-height:18px;font-size:12px}
+#ub{display:flex;gap:8px;align-items:center;font-size:12px}#ub b{padding:2px 8px;border-radius:9px;background:#3b82f6;color:#fff}#ub b.a{background:#ff6a13}
+body.ro [onclick*="delEq"],body.ro [onclick*="saveEq"],body.ro [onclick*="addEq"],body.ro [onclick*="addSrc"],body.ro [onclick*="delSrc"],body.ro [onclick*="delSite"],body.ro [onclick*="addSite"],body.ro [onclick*="scn"],body.ro [onclick*="LSK"],body.ro [onclick*="edit="],body.ro [onclick*="edit ="]{display:none!important}
+</style>
+<script>
+(function(){
+const UK='nipm2_users',SK='nipm2_sess';let U=[],me=null;
+const H=async s=>{try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('nipm2:'+s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return'p:'+btoa(unescape(encodeURIComponent(s)))}};
+const ld=()=>{try{U=JSON.parse(localStorage.getItem(UK))||[]}catch(e){U=[]}},sv=()=>localStorage.setItem(UK,JSON.stringify(U));
+const ro=()=>!me||me.role!=='admin',E=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* read-only enforcement: every editing function is blocked unless admin */
+['delEq','saveEq','addEqM','addEq','addSrcM','delSrc','delSite','addSiteM','addSite','scnM','scn','dnd','editSiteM','saveSite','camCfgM','camCfgAdd','camCfgDel','camCfgSave'].forEach(n=>{const o=window[n];if(typeof o!=='function')return;window[n]=function(){if(ro())return;return o.apply(this,arguments)}});
+const os=window.save;window.save=function(){if(ro())return;return os.apply(this,arguments)};
+const lg=document.createElement('div');lg.id='lg';
+lg.innerHTML='<div class="b"><h2>NBTEL NIPM²</h2><p>Power Monitoring — DEMO / SIMULATED DATA<br>Sign in</p><label>Username</label><input id="lu" autocomplete="username"><label>Password</label><input id="lp" type="password" autocomplete="current-password"><div id="lger"></div><button id="lb">Sign in</button><p style="margin-top:12px">Demo accounts: admin / admin123 · viewer / viewer123</p></div>';
+document.body.appendChild(lg);
+const ub=document.createElement('span');ub.id='ub';document.querySelector('#bell').before(ub);
+function enter(u){me=u;sessionStorage.setItem(SK,u.u);lg.style.display='none';document.body.classList.toggle('ro',ro());
+ if(ro()){try{edit=false}catch(e){}}
+ ub.innerHTML=E(u.u)+' <b class="'+(ro()?'':'a')+'">'+(ro()?'VIEW ONLY':'ADMIN')+'</b>'+(ro()?'':'<button onclick="adminM()">⚙ Admin</button>')+'<button onclick="logout()">Logout</button>';
+ try{render()}catch(e){}}
+window.logout=()=>{__log('Signed out');__unpres();sessionStorage.removeItem(SK);location.reload()};
+async function login(){ld();const h=await H(lp.value),u=U.find(x=>x.u===lu.value.trim()&&x.h===h);if(!u){lger.textContent='Wrong username or password';window.__log('Failed sign-in: '+lu.value);return}enter(u);window.__log('Signed in')}
+lb.onclick=login;lg.addEventListener('keydown',e=>{if(e.key=='Enter')login()});
+/* admin: user management */
+window.__unused=()=>{if(ro())return;ld();modal('<h2>Users</h2><table style="width:100%">'+U.map((x,i)=>'<tr><td>'+E(x.u)+'</td><td><select onchange="uRole('+i+',this.value)"><option value="viewer"'+(x.role=='viewer'?' selected':'')+'>Viewer (read-only)</option><option value="admin"'+(x.role=='admin'?' selected':'')+'>Admin</option></select></td><td><button onclick="uPw('+i+')">Password</button> <button onclick="uDel('+i+')">Delete</button></td></tr>').join('')+'</table><h3>Add user</h3><div class="fg"><div><label>Username</label><input id="nu"></div><div><label>Password</label><input id="np" type="password"></div><div><label>Role</label><select id="nr"><option value="viewer">Viewer (read-only)</option><option value="admin">Admin</option></select></div></div><p><button class="p" onclick="uAdd()">Add user</button> <button onclick="closeM()">Close</button></p>')};
+const admins=()=>U.filter(x=>x.role=='admin').length;
+window.uAdd=async()=>{if(ro())return;const n=nu.value.trim();if(!n||!np.value){alert('Username and password are required');return}if(U.some(x=>x.u===n)){alert('Username already exists');return}__log('Created user '+n+' ('+nr.value+')');U.push({u:n,h:await H(np.value),role:nr.value});sv();usersM()};
+window.uDel=i=>{if(ro())return;if(U[i].u===me.u){alert('You cannot delete your own account');return}if(U[i].role=='admin'&&admins()<2){alert('At least one admin is required');return}if(confirm('Delete '+U[i].u+'?')){__log('Deleted user '+U[i].u);U.splice(i,1);sv();usersM()}};
+window.uRole=(i,r)=>{if(ro())return;if(U[i].role=='admin'&&r!='admin'&&(admins()<2||U[i].u===me.u)){alert('Cannot remove the last admin or your own admin role');usersM();return}__log('Role '+U[i].u+' → '+r);U[i].role=r;sv()};
+window.uPw=async i=>{if(ro())return;const p=prompt('New password for '+U[i].u);if(p){__log('Reset password '+U[i].u);U[i].h=await H(p);sv();alert('Password changed')}};
+(async()=>{ld();if(!U.length){U=[{u:'admin',h:await H('admin123'),role:'admin'},{u:'viewer',h:await H('viewer123'),role:'viewer'}];sv()}
+ const s=sessionStorage.getItem(SK),u=U.find(x=>x.u===s);if(u)enter(u);else{document.body.classList.add('ro');lu.focus()}})();
+})();
+</script>
+</body>
+</html>
